@@ -49,25 +49,22 @@
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6">
                 <h2 class="text-lg font-bold mb-4 flex items-center"><span class="mr-2">➕</span> 新增菜單到資料庫</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:bg-gray-50 transition-colors relative">
+                    <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:bg-gray-50 transition-colors">
                         <input type="file" id="menu-image" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
                         <label for="menu-image" class="cursor-pointer block py-8">
                             <div id="upload-placeholder">
                                 <div class="text-4xl mb-2">📸</div>
-                                <p class="text-sm font-bold text-blue-600">拍照辨識菜單</p>
+                                <p class="text-sm font-bold text-blue-600">上傳菜單圖片</p>
+                                <p class="text-xs text-gray-400 mt-1">點此選取或拍照</p>
                             </div>
                             <img id="image-preview" class="hidden max-h-48 mx-auto rounded shadow-sm">
                         </label>
-                        <div id="ai-loading" class="hidden absolute inset-0 bg-white/90 flex flex-col items-center justify-center rounded-xl z-10">
-                            <div class="loader mb-2"></div>
-                            <span class="text-xs font-bold text-blue-600 font-sans">AI 正在努力閱讀菜單中...</span>
-                        </div>
                     </div>
                     <div class="flex flex-col">
-                        <label class="text-xs font-bold text-gray-400 mb-1">菜單名稱</label>
-                        <input type="text" id="new-menu-title" class="w-full p-2 border-b mb-4 outline-none focus:border-blue-500 font-bold text-lg" placeholder="店名">
-                        <label class="text-xs font-bold text-gray-400 mb-1">辨識結果 (品名 價格)</label>
-                        <textarea id="raw-menu-text" class="flex-grow w-full h-48 p-3 bg-gray-50 rounded-lg text-xs font-mono outline-none focus:bg-white border border-transparent focus:border-blue-200" placeholder="品項 價格..."></textarea>
+                        <label class="text-xs font-bold text-gray-400 mb-1">店名</label>
+                        <input type="text" id="new-menu-title" class="w-full p-2 border-b mb-4 outline-none focus:border-blue-500 font-bold text-lg" placeholder="輸入店名">
+                        <label class="text-xs font-bold text-gray-400 mb-1">品項清單（每行一項：品名 價格）</label>
+                        <textarea id="raw-menu-text" class="flex-grow w-full h-48 p-3 bg-gray-50 rounded-lg text-xs font-mono outline-none focus:bg-white border border-transparent focus:border-blue-200" placeholder="滷肉飯 35&#10;排骨飯 70&#10;雞腿飯 80"></textarea>
                         <button onclick="saveToDatabase()" class="mt-4 bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center">
                             <span class="mr-2">💾</span> 儲存到我的資料庫
                         </button>
@@ -104,8 +101,6 @@
     </div>
 
     <script>
-        const apiKey = "AIzaSyCsdKHGglHMottrIro9pzywIRgx_1ZN3XI"; 
-        
         let menuLibrary = JSON.parse(localStorage.getItem('menuLibrary')) || [];
         let activeMenu = JSON.parse(localStorage.getItem('activeMenu')) || null;
         let allOrders = JSON.parse(localStorage.getItem('allOrders')) || [];
@@ -138,78 +133,16 @@
             if (view === 'admin') renderLibrary();
         }
 
-        async function handleImageUpload(input) {
+        function handleImageUpload(input) {
             const file = input.files[0];
             if (!file) return;
-            const mimeType = file.type || 'image/jpeg';
             const reader = new FileReader();
             reader.onload = (e) => {
                 document.getElementById('image-preview').src = e.target.result;
                 document.getElementById('image-preview').classList.remove('hidden');
                 document.getElementById('upload-placeholder').classList.add('hidden');
-                recognizeMenu(e.target.result.split(',')[1], mimeType);
             };
             reader.readAsDataURL(file);
-        }
-
-        async function recognizeMenu(base64, mimeType = 'image/jpeg') {
-            document.getElementById('ai-loading').classList.remove('hidden');
-            document.getElementById('raw-menu-text').value = "";
-
-            const urls = [
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`
-            ];
-            let rateLimited = false;
-
-            const prompt = "你是一個菜單辨識專家。請從這張圖片中提取所有的「品名」與「價格」。輸出格式必須嚴格遵守：品名 數字。每行一個品項。如果圖片頂部有明顯的店名，請在第一行輸出：STORE:店名。不要說任何贅字。範例：滷肉飯 35";
-
-            for (let url of urls) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ 
-                                parts: [
-                                    { text: prompt }, 
-                                    { inlineData: { mimeType: mimeType, data: base64 } }
-                                ] 
-                            }]
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const err = await response.json().catch(() => ({}));
-                        if (response.status === 429) rateLimited = true;
-                        console.warn(`API 錯誤 ${response.status} (${url}):`, err);
-                        continue;
-                    }
-                    const result = await response.json();
-                    let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                    if (text) {
-                        if (text.includes("STORE:")) {
-                            const lines = text.split('\n');
-                            const storeLine = lines.find(l => l.includes("STORE:"));
-                            document.getElementById('new-menu-title').value = storeLine.replace("STORE:", "").trim();
-                            text = lines.filter(l => !l.includes("STORE:")).join('\n').trim();
-                        }
-                        document.getElementById('raw-menu-text').value = text;
-                        document.getElementById('ai-loading').classList.add('hidden');
-                        return;
-                    }
-                } catch (e) {
-                    console.warn(`嘗試 URL ${url} 失敗`, e);
-                }
-            }
-            
-            document.getElementById('ai-loading').classList.add('hidden');
-            if (rateLimited) {
-                alert("API 請求次數已達上限（免費額度用完）。\n請稍等 1 分鐘後再試，或到 Google AI Studio 確認配額。");
-            } else {
-                alert("辨識失敗。請確認 API 金鑰是否正確，或嘗試換一張更清晰的圖片。");
-            }
         }
 
         function saveToDatabase() {
