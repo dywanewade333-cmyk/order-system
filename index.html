@@ -11,8 +11,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f1f5f9; }
         .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .menu-card-active { border: 2px solid #3b82f6; background-color: #eff6ff; }
 
         html.dark body { background-color: #0f172a; color: #f1f5f9; }
@@ -54,7 +52,7 @@
     </nav>
 
     <main class="max-w-4xl mx-auto p-4">
-        
+
         <!-- View: User (點餐) -->
         <section id="view-user" class="block">
             <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border border-gray-200">
@@ -62,7 +60,7 @@
                     <h2 id="active-menu-name" class="text-xl font-black text-gray-800 italic">尚未載入菜單</h2>
                     <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold">今日供應中</span>
                 </div>
-                <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-widest">Your Name</label>
+                <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-widest">你的名字</label>
                 <input type="text" id="user-name-input" oninput="saveUserName()" class="w-full p-4 rounded-xl bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-400 outline-none transition-all text-lg font-bold" placeholder="輸入名字開始點餐...">
             </div>
             <div id="menu-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
@@ -99,8 +97,8 @@
                             <option value="飲料">
                             <option value="點心">
                         </datalist>
-                        <label class="text-xs font-bold text-gray-400 mb-1">品項清單（每行一項：品名 價格）</label>
-                        <textarea id="raw-menu-text" class="flex-grow w-full h-48 p-3 bg-gray-50 rounded-lg text-xs font-mono outline-none focus:bg-white border border-transparent focus:border-blue-200" placeholder="滷肉飯 35&#10;排骨飯 70&#10;雞腿飯 80"></textarea>
+                        <label class="text-xs font-bold text-gray-400 mb-1">品項清單（一般：品名 價格 ／ 多規格：品名 大65/小50）</label>
+                        <textarea id="raw-menu-text" class="flex-grow w-full h-48 p-3 bg-gray-50 rounded-lg text-xs font-mono outline-none focus:bg-white border border-transparent focus:border-blue-200" placeholder="滷肉飯 35&#10;排骨飯 70&#10;珍珠奶茶 大65/小50&#10;美式咖啡 熱55/冰60"></textarea>
                         <button id="save-btn" onclick="saveToDatabase()" class="mt-4 bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center">
                             <span class="mr-2">💾</span> 儲存到我的資料庫
                         </button>
@@ -115,7 +113,7 @@
         <section id="view-summary" class="hidden">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-black italic">ORDERS SUMMARY</h2>
+                    <h2 class="text-xl font-black italic">訂單統計總覽</h2>
                     <button onclick="clearOrders()" class="text-xs font-bold text-red-500 bg-red-50 px-3 py-1 rounded-full">清空紀錄</button>
                 </div>
                 <div id="order-summary-content"></div>
@@ -127,7 +125,7 @@
     <div id="cart-bar" class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 px-6 py-4 shadow-2xl z-50">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div>
-                <p class="text-[10px] text-gray-400 font-black uppercase">Current Total</p>
+                <p class="text-[10px] text-gray-400 font-black uppercase">目前總計</p>
                 <p class="text-2xl font-black text-blue-600">NT$ <span id="cart-total">0</span></p>
             </div>
             <button id="submit-btn" onclick="submitOrder()" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-200 disabled:bg-gray-200 disabled:text-gray-400 transition-all active:scale-95">
@@ -138,7 +136,7 @@
 
     <script>
         // ==============================
-        // 🔧 填入你的 Firebase 設定
+        // 🔧 Firebase 設定
         // ==============================
         const firebaseConfig = {
             apiKey: "AIzaSyCBH5fDWcjYaWeppYe1WzohCd1F9UsNPUY",
@@ -154,11 +152,11 @@
         const db = firebase.firestore();
 
         let menuLibrary = [];
-        let activeMenuId = null;
-        let activeMenu = null;
+        let activeMenuIds = [];   // 多選啟用
+        let activeMenus = [];
         let allOrders = [];
         let currentUserName = "";
-        let cart = {};
+        let cart = {};  // key: `${menuId}_${itemIdx}` 或 `${menuId}_${itemIdx}_v${vi}`
         let editingMenuId = null;
 
         if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
@@ -169,8 +167,50 @@
             document.getElementById('dark-toggle').innerText = isDark ? '☀️' : '🌙';
         }
 
-        function resolveActiveMenu() {
-            activeMenu = activeMenuId ? (menuLibrary.find(m => m.id === activeMenuId) || null) : null;
+        function resolveActiveMenus() {
+            activeMenus = activeMenuIds.map(id => menuLibrary.find(m => m.id === id)).filter(Boolean);
+        }
+
+        // 解析品項行：支援 "品名 價格" 或 "品名 大65/小50"
+        function parseLine(line) {
+            const t = line.trim();
+            if (!t) return null;
+            const vm = t.match(/^(.+?)\s+((?:[^\d\s\/]+\d+)(?:\/[^\d\s\/]+\d+)+)$/);
+            if (vm) {
+                const name = vm[1].trim();
+                const variants = vm[2].split('/').map(v => {
+                    const m = v.match(/^([^\d]+)(\d+)$/);
+                    return m ? { size: m[1].trim(), price: parseInt(m[2]) } : null;
+                }).filter(Boolean);
+                if (variants.length >= 2) return { name, variants };
+            }
+            const parts = t.split(/\s+/);
+            if (parts.length < 2) return null;
+            const price = parseInt(parts.pop().replace(/[^0-9]/g, '')) || 0;
+            const name = parts.join(' ');
+            return name ? { name, price } : null;
+        }
+
+        function itemToText(item) {
+            if (item.variants) return `${item.name} ${item.variants.map(v => `${v.size}${v.price}`).join('/')}`;
+            return `${item.name} ${item.price}`;
+        }
+
+        function getCartItemInfo(key) {
+            const parts = key.split('_');
+            const menuId = parseInt(parts[0]);
+            const itemIdx = parseInt(parts[1]);
+            const isVariant = parts.length > 2;
+            const variantIdx = isVariant ? parseInt(parts[2].replace('v', '')) : null;
+            const menu = activeMenus.find(m => m.id === menuId);
+            if (!menu) return null;
+            const item = menu.items[itemIdx];
+            if (!item) return null;
+            if (isVariant && item.variants) {
+                const v = item.variants[variantIdx];
+                return v ? { name: `${item.name}(${v.size})`, price: v.price } : null;
+            }
+            return { name: item.name, price: item.price };
         }
 
         window.onload = () => {
@@ -179,15 +219,16 @@
 
             db.collection('menus').onSnapshot(snapshot => {
                 menuLibrary = snapshot.docs.map(d => d.data()).sort((a, b) => a.id - b.id);
-                resolveActiveMenu();
+                resolveActiveMenus();
                 renderLibrary();
                 renderActiveMenu();
             });
 
-            db.doc('settings/activeMenu').onSnapshot(doc => {
-                activeMenuId = doc.exists ? doc.data().id : null;
-                resolveActiveMenu();
+            db.doc('settings/activeMenus').onSnapshot(doc => {
+                activeMenuIds = doc.exists ? (doc.data().ids || []) : [];
+                resolveActiveMenus();
                 cart = {};
+                renderLibrary();
                 renderActiveMenu();
                 updateCartUI();
             });
@@ -232,22 +273,15 @@
             const category = document.getElementById('new-menu-category').value.trim() || '未分類';
             const rawText = document.getElementById('raw-menu-text').value.trim();
             if (!title || !rawText) { alert("請確保已有店名與品項內容。"); return; }
-
-            const items = rawText.split('\n').map(line => {
-                const parts = line.trim().split(/\s+/);
-                if (parts.length < 2) return null;
-                const price = parseInt(parts.pop().replace(/[^0-9]/g, "")) || 0;
-                return { name: parts.join(" "), price };
-            }).filter(i => i && i.name);
-
-            if (items.length === 0) { alert("格式解析失敗，請確認每行格式為「品名 價格」。"); return; }
-
+            const items = rawText.split('\n').map(parseLine).filter(Boolean);
+            if (items.length === 0) { alert("格式解析失敗，請確認格式。"); return; }
             try {
                 const id = editingMenuId !== null ? editingMenuId : Date.now();
                 await db.collection('menus').doc(String(id)).set({ id, title, category, items });
                 cancelEdit();
+                alert("儲存成功！");
             } catch (e) {
-                alert("儲存失敗，請確認 Firebase 設定是否正確。");
+                alert("儲存失敗，請確認 Firebase 設定。");
                 console.error(e);
             }
         }
@@ -258,7 +292,7 @@
             editingMenuId = id;
             document.getElementById('new-menu-title').value = menu.title;
             document.getElementById('new-menu-category').value = menu.category || '';
-            document.getElementById('raw-menu-text').value = menu.items.map(i => `${i.name} ${i.price}`).join('\n');
+            document.getElementById('raw-menu-text').value = menu.items.map(itemToText).join('\n');
             document.getElementById('form-title').innerHTML = '<span class="mr-2">✏️</span> 編輯菜單';
             document.getElementById('save-btn').innerHTML = '<span class="mr-2">💾</span> 更新菜單';
             document.getElementById('cancel-edit-btn').classList.remove('hidden');
@@ -279,10 +313,7 @@
 
         function renderLibrary() {
             const list = document.getElementById('database-list');
-            if (menuLibrary.length === 0) {
-                list.innerHTML = `<div class="py-10 text-center text-gray-400">資料庫是空的</div>`;
-                return;
-            }
+            if (menuLibrary.length === 0) { list.innerHTML = `<div class="py-10 text-center text-gray-400">資料庫是空的</div>`; return; }
             const groups = {};
             menuLibrary.forEach(menu => {
                 const cat = menu.category || '未分類';
@@ -296,7 +327,7 @@
                 const grid = document.createElement('div');
                 grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3';
                 menus.forEach(menu => {
-                    const isActive = activeMenuId === menu.id;
+                    const isActive = activeMenuIds.includes(menu.id);
                     const card = document.createElement('div');
                     card.className = `bg-white p-4 rounded-xl border transition-all ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
                     card.innerHTML = `
@@ -305,8 +336,8 @@
                             <span class="text-[10px] text-gray-400">${menu.items.length} 品項</span>
                         </div>
                         <div class="flex space-x-2">
-                            <button onclick="setActiveMenu(${menu.id})" class="flex-1 text-xs py-2 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
-                                ${isActive ? '使用中' : '啟用'}
+                            <button onclick="toggleActiveMenu(${menu.id})" class="flex-1 text-xs py-2 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
+                                ${isActive ? '✓ 使用中' : '啟用'}
                             </button>
                             <button onclick="editMenu(${menu.id})" class="p-2 text-blue-300">✏️</button>
                             <button onclick="deleteFromLibrary(${menu.id})" class="p-2 text-red-300">🗑️</button>
@@ -319,59 +350,87 @@
             });
         }
 
-        async function setActiveMenu(id) {
-            await db.doc('settings/activeMenu').set({ id });
-            cart = {};
-            switchView('user');
+        async function toggleActiveMenu(id) {
+            const newIds = activeMenuIds.includes(id)
+                ? activeMenuIds.filter(i => i !== id)
+                : [...activeMenuIds, id];
+            await db.doc('settings/activeMenus').set({ ids: newIds });
         }
 
         async function deleteFromLibrary(id) {
             if (!confirm("確定刪除？")) return;
             await db.collection('menus').doc(String(id)).delete();
-            if (activeMenuId === id) await db.doc('settings/activeMenu').delete();
+            if (activeMenuIds.includes(id))
+                await db.doc('settings/activeMenus').set({ ids: activeMenuIds.filter(i => i !== id) });
         }
 
         function renderActiveMenu() {
             const container = document.getElementById('menu-container');
             const titleDisplay = document.getElementById('active-menu-name');
             container.innerHTML = '';
-            if (!activeMenu) {
+            if (activeMenus.length === 0) {
                 titleDisplay.innerText = "尚未選擇菜單";
                 container.innerHTML = `<div class="col-span-full py-20 text-center text-gray-400">請到菜單資料庫啟用一份菜單。</div>`;
+                updateCartUI();
                 return;
             }
-            titleDisplay.innerText = activeMenu.title;
-            activeMenu.items.forEach((item, idx) => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-4 rounded-xl border border-gray-100 flex flex-col justify-between";
-                card.innerHTML = `
-                    <div><h4 class="font-bold text-gray-800 text-sm mb-1 line-clamp-2">${item.name}</h4><p class="text-blue-600 font-black mb-3">$${item.price}</p></div>
-                    <div class="flex items-center justify-between bg-gray-50 rounded-lg p-1">
-                        <button onclick="addToCart(${idx}, -1)" class="w-8 h-8">-</button>
-                        <span class="text-sm font-bold" id="qty-${idx}">${cart[idx] || 0}</span>
-                        <button onclick="addToCart(${idx}, 1)" class="w-8 h-8 bg-white rounded shadow-sm text-blue-600">+</button>
-                    </div>
-                `;
-                container.appendChild(card);
+            titleDisplay.innerText = activeMenus.map(m => m.title).join(' · ');
+            activeMenus.forEach(menu => {
+                if (activeMenus.length > 1) {
+                    const header = document.createElement('div');
+                    header.className = 'col-span-full text-xs font-bold text-gray-400 mt-3 mb-1 pb-1 border-b uppercase tracking-widest';
+                    header.innerText = menu.title;
+                    container.appendChild(header);
+                }
+                menu.items.forEach((item, idx) => {
+                    const card = document.createElement('div');
+                    if (item.variants) {
+                        card.className = "bg-white p-4 rounded-xl border border-gray-100";
+                        const rows = item.variants.map((v, vi) => {
+                            const key = `${menu.id}_${idx}_v${vi}`;
+                            return `<div class="flex items-center justify-between mt-2">
+                                <span class="text-xs text-gray-600">${v.size} <span class="font-black text-blue-600">$${v.price}</span></span>
+                                <div class="flex items-center bg-gray-50 rounded-lg px-1">
+                                    <button onclick="addToCart('${key}',-1)" class="w-7 h-7 text-sm">-</button>
+                                    <span class="text-xs font-bold w-5 text-center" id="qty-${key}">${cart[key]||0}</span>
+                                    <button onclick="addToCart('${key}',1)" class="w-7 h-7 text-sm bg-white rounded shadow-sm text-blue-600">+</button>
+                                </div>
+                            </div>`;
+                        }).join('');
+                        card.innerHTML = `<h4 class="font-bold text-gray-800 text-sm line-clamp-2">${item.name}</h4>${rows}`;
+                    } else {
+                        const key = `${menu.id}_${idx}`;
+                        card.className = "bg-white p-4 rounded-xl border border-gray-100 flex flex-col justify-between";
+                        card.innerHTML = `
+                            <div><h4 class="font-bold text-gray-800 text-sm mb-1 line-clamp-2">${item.name}</h4><p class="text-blue-600 font-black mb-3">$${item.price}</p></div>
+                            <div class="flex items-center justify-between bg-gray-50 rounded-lg p-1">
+                                <button onclick="addToCart('${key}',-1)" class="w-8 h-8">-</button>
+                                <span class="text-sm font-bold" id="qty-${key}">${cart[key]||0}</span>
+                                <button onclick="addToCart('${key}',1)" class="w-8 h-8 bg-white rounded shadow-sm text-blue-600">+</button>
+                            </div>`;
+                    }
+                    container.appendChild(card);
+                });
             });
             updateCartUI();
         }
 
-        function addToCart(idx, change) {
-            cart[idx] = (cart[idx] || 0) + change;
-            if (cart[idx] <= 0) delete cart[idx];
-            document.getElementById(`qty-${idx}`).innerText = cart[idx] || 0;
+        function addToCart(key, change) {
+            cart[key] = (cart[key] || 0) + change;
+            if (cart[key] <= 0) delete cart[key];
+            const el = document.getElementById(`qty-${key}`);
+            if (el) el.innerText = cart[key] || 0;
             updateCartUI();
         }
 
         function updateCartUI() {
             let total = 0, count = 0;
-            if (activeMenu) {
-                Object.entries(cart).forEach(([idx, qty]) => {
-                    total += activeMenu.items[idx].price * qty;
-                    count += qty;
-                });
-            }
+            Object.entries(cart).forEach(([key, qty]) => {
+                const info = getCartItemInfo(key);
+                if (!info) return;
+                total += info.price * qty;
+                count += qty;
+            });
             document.getElementById('cart-total').innerText = total;
             const btn = document.getElementById('submit-btn');
             btn.disabled = !(currentUserName && count > 0);
@@ -379,10 +438,12 @@
         }
 
         async function submitOrder() {
-            const items = Object.entries(cart).map(([idx, qty]) => ({ name: activeMenu.items[idx].name, price: activeMenu.items[idx].price, qty }));
+            const items = Object.entries(cart).map(([key, qty]) => {
+                const info = getCartItemInfo(key);
+                return info ? { name: info.name, price: info.price, qty } : null;
+            }).filter(Boolean);
             await db.collection('orders').add({
                 user: currentUserName,
-                shop: activeMenu.title,
                 items,
                 total: document.getElementById('cart-total').innerText,
                 time: new Date().toLocaleTimeString(),
