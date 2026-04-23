@@ -156,7 +156,8 @@
         let activeMenus = [];
         let allOrders = [];
         let currentUserName = "";
-        let cart = {};  // key: `${menuId}_${itemIdx}` 或 `${menuId}_${itemIdx}_v${vi}`
+        let cart = {};       // key: `${menuId}_${itemIdx}` 或 `${menuId}_${itemIdx}_v${vi}`
+        let cartOptions = {}; // key: `${menuId}_${itemIdx}` → { sugar, ice }
         let editingMenuId = null;
 
         if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
@@ -228,6 +229,7 @@
                 activeMenuIds = doc.exists ? (doc.data().ids || []) : [];
                 resolveActiveMenus();
                 cart = {};
+                cartOptions = {};
                 renderLibrary();
                 renderActiveMenu();
                 updateCartUI();
@@ -364,6 +366,22 @@
                 await db.doc('settings/activeMenus').set({ ids: activeMenuIds.filter(i => i !== id) });
         }
 
+        function drinkOptHTML(itemKey) {
+            const opts = cartOptions[itemKey] || { sugar: '全糖', ice: '正常冰' };
+            const sugars = ['全糖','8分糖','半糖','微糖','1分糖','無糖'];
+            const ices = ['正常冰','少冰','微冰','去冰'];
+            const sel = (arr, cur) => arr.map(s => `<option${s===cur?' selected':''}>${s}</option>`).join('');
+            return `<div class="mt-2 flex gap-1">
+                <select onchange="setDrinkOpt('${itemKey}','sugar',this.value)" class="flex-1 text-xs rounded-lg border border-gray-200 bg-gray-50 p-1 outline-none">${sel(sugars,opts.sugar)}</select>
+                <select onchange="setDrinkOpt('${itemKey}','ice',this.value)" class="flex-1 text-xs rounded-lg border border-gray-200 bg-gray-50 p-1 outline-none">${sel(ices,opts.ice)}</select>
+            </div>`;
+        }
+
+        function setDrinkOpt(itemKey, field, value) {
+            if (!cartOptions[itemKey]) cartOptions[itemKey] = { sugar: '全糖', ice: '正常冰' };
+            cartOptions[itemKey][field] = value;
+        }
+
         function renderActiveMenu() {
             const container = document.getElementById('menu-container');
             const titleDisplay = document.getElementById('active-menu-name');
@@ -376,6 +394,7 @@
             }
             titleDisplay.innerText = activeMenus.map(m => m.title).join(' · ');
             activeMenus.forEach(menu => {
+                const isDrink = menu.category === '飲料';
                 if (activeMenus.length > 1) {
                     const header = document.createElement('div');
                     header.className = 'col-span-full text-xs font-bold text-gray-400 mt-3 mb-1 pb-1 border-b uppercase tracking-widest';
@@ -384,6 +403,7 @@
                 }
                 menu.items.forEach((item, idx) => {
                     const card = document.createElement('div');
+                    const itemKey = `${menu.id}_${idx}`;
                     if (item.variants) {
                         card.className = "bg-white p-4 rounded-xl border border-gray-100";
                         const rows = item.variants.map((v, vi) => {
@@ -397,16 +417,18 @@
                                 </div>
                             </div>`;
                         }).join('');
-                        card.innerHTML = `<h4 class="font-bold text-gray-800 text-sm line-clamp-2">${item.name}</h4>${rows}`;
+                        card.innerHTML = `<h4 class="font-bold text-gray-800 text-sm line-clamp-2">${item.name}</h4>${rows}${isDrink ? drinkOptHTML(itemKey) : ''}`;
                     } else {
-                        const key = `${menu.id}_${idx}`;
                         card.className = "bg-white p-4 rounded-xl border border-gray-100 flex flex-col justify-between";
                         card.innerHTML = `
                             <div><h4 class="font-bold text-gray-800 text-sm mb-1 line-clamp-2">${item.name}</h4><p class="text-blue-600 font-black mb-3">$${item.price}</p></div>
-                            <div class="flex items-center justify-between bg-gray-50 rounded-lg p-1">
-                                <button onclick="addToCart('${key}',-1)" class="w-8 h-8">-</button>
-                                <span class="text-sm font-bold" id="qty-${key}">${cart[key]||0}</span>
-                                <button onclick="addToCart('${key}',1)" class="w-8 h-8 bg-white rounded shadow-sm text-blue-600">+</button>
+                            <div>
+                                <div class="flex items-center justify-between bg-gray-50 rounded-lg p-1">
+                                    <button onclick="addToCart('${itemKey}',-1)" class="w-8 h-8">-</button>
+                                    <span class="text-sm font-bold" id="qty-${itemKey}">${cart[itemKey]||0}</span>
+                                    <button onclick="addToCart('${itemKey}',1)" class="w-8 h-8 bg-white rounded shadow-sm text-blue-600">+</button>
+                                </div>
+                                ${isDrink ? drinkOptHTML(itemKey) : ''}
                             </div>`;
                     }
                     container.appendChild(card);
@@ -440,7 +462,16 @@
         async function submitOrder() {
             const items = Object.entries(cart).map(([key, qty]) => {
                 const info = getCartItemInfo(key);
-                return info ? { name: info.name, price: info.price, qty } : null;
+                if (!info) return null;
+                const parts = key.split('_');
+                const menuId = parseInt(parts[0]);
+                const itemIdx = parseInt(parts[1]);
+                const menu = activeMenus.find(m => m.id === menuId);
+                const isDrink = menu && menu.category === '飲料';
+                const optKey = `${menuId}_${itemIdx}`;
+                const opts = cartOptions[optKey] || { sugar: '全糖', ice: '正常冰' };
+                const name = isDrink ? `${info.name}／${opts.sugar}／${opts.ice}` : info.name;
+                return { name, price: info.price, qty, menuTitle: menu ? menu.title : '未分類' };
             }).filter(Boolean);
             await db.collection('orders').add({
                 user: currentUserName,
@@ -450,6 +481,7 @@
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             cart = {};
+            cartOptions = {};
             renderActiveMenu();
             switchView('summary');
         }
@@ -457,11 +489,26 @@
         function renderSummary() {
             const container = document.getElementById('order-summary-content');
             if (allOrders.length === 0) { container.innerHTML = '<p class="text-center py-20 text-gray-400">無紀錄</p>'; return; }
-            const aggregate = {};
-            allOrders.forEach(o => o.items.forEach(i => aggregate[i.name] = (aggregate[i.name] || 0) + i.qty));
-            let html = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6">${Object.entries(aggregate).map(([name, qty]) => `<div class="flex justify-between border-b border-white/10 pb-1 mb-1"><span>${name}</span><span class="font-bold">x${qty}</span></div>`).join('')}</div><div class="space-y-4">`;
-            allOrders.forEach(o => { html += `<div class="bg-gray-50 p-4 rounded-xl border flex justify-between items-start"><div><b>${o.user}</b> <span class="text-blue-600">$${o.total}</span><div class="text-xs text-gray-500 mt-1">${o.items.map(i => `${i.name}x${i.qty}`).join(', ')}</div></div><button onclick="deleteOrder('${o._id}')" class="text-xs text-red-400 hover:text-red-600 ml-3 mt-1 flex-shrink-0">✕ 移除</button></div>`; });
-            container.innerHTML = html + "</div>";
+            const byMenu = {};
+            allOrders.forEach(o => o.items.forEach(i => {
+                const mt = i.menuTitle || '未分類';
+                if (!byMenu[mt]) byMenu[mt] = {};
+                byMenu[mt][i.name] = (byMenu[mt][i.name] || 0) + i.qty;
+            }));
+            let aggHtml = '<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6 space-y-4">';
+            Object.entries(byMenu).forEach(([menuTitle, items]) => {
+                aggHtml += `<div><div class="text-xs text-blue-400 font-bold mb-2 tracking-widest">${menuTitle}</div>`;
+                Object.entries(items).forEach(([name, qty]) => {
+                    aggHtml += `<div class="flex justify-between border-b border-white/10 pb-1 mb-1"><span>${name}</span><span class="font-bold">x${qty}</span></div>`;
+                });
+                aggHtml += '</div>';
+            });
+            aggHtml += '</div>';
+            let ordersHtml = '<div class="space-y-4">';
+            allOrders.forEach(o => {
+                ordersHtml += `<div class="bg-gray-50 p-4 rounded-xl border flex justify-between items-start"><div><b>${o.user}</b> <span class="text-blue-600">$${o.total}</span><div class="text-xs text-gray-500 mt-1">${o.items.map(i => `${i.name}x${i.qty}`).join('、')}</div></div><button onclick="deleteOrder('${o._id}')" class="text-xs text-red-400 hover:text-red-600 ml-3 mt-1 flex-shrink-0">✕ 移除</button></div>`;
+            });
+            container.innerHTML = aggHtml + ordersHtml + '</div>';
         }
 
         async function deleteOrder(id) {
