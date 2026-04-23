@@ -35,7 +35,7 @@
         html.dark .hover\:bg-gray-50:hover { background-color: #253146 !important; }
     </style>
 </head>
-<body class="pb-32">
+<body class="pb-6">
 
     <nav class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
@@ -59,6 +59,7 @@
                 <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-widest">你的名字</label>
                 <input type="text" id="user-name-input" oninput="saveUserName()" class="w-full p-4 rounded-xl bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-400 outline-none transition-all text-lg font-bold" placeholder="輸入名字開始點餐...">
             </div>
+            <div id="menu-tabs" class="hidden flex gap-2 mb-4 flex-wrap overflow-x-auto"></div>
             <div id="menu-container" class="space-y-4"></div>
         </section>
 
@@ -90,16 +91,14 @@
 
     </main>
 
-    <div id="cart-bar" class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 px-6 py-4 shadow-2xl z-50">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <div>
-                <p class="text-[10px] text-gray-400 font-black uppercase">點餐人</p>
-                <p class="text-lg font-black text-gray-700"><span id="cart-name-display">—</span></p>
-            </div>
-            <button id="submit-btn" onclick="submitOrder()" disabled class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-200 disabled:bg-gray-200 disabled:text-gray-400 transition-all active:scale-95">
-                請輸入名字
-            </button>
+    <div id="cart-bar" class="fixed bottom-5 right-4 z-50 flex flex-col items-end gap-2">
+        <div class="flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-gray-100">
+            <span class="text-[10px] text-gray-400 font-bold uppercase">點餐人</span>
+            <span id="cart-name-display" class="text-sm font-black text-gray-700">—</span>
         </div>
+        <button id="submit-btn" onclick="submitOrder()" disabled class="bg-blue-600 text-white px-5 py-3 rounded-2xl font-black shadow-xl shadow-blue-200 disabled:bg-gray-300 disabled:text-gray-400 transition-all active:scale-95 text-sm whitespace-nowrap">
+            請輸入名字
+        </button>
     </div>
 
     <!-- Menu Form Modal -->
@@ -174,6 +173,7 @@
         let currentImageData = null;
         let editingMenuId = null;
         let libFilter = { category: '全部', search: '' };
+        let activeMenuTab = null;
 
         if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
 
@@ -418,17 +418,49 @@
             }
         }
 
+        function switchMenuTab(id) {
+            activeMenuTab = id;
+            activeMenus.forEach(m => {
+                const card = document.getElementById(`menu-card-${m.id}`);
+                if (card) card.classList.toggle('hidden', m.id !== id);
+                const tab = document.getElementById(`menu-tab-${m.id}`);
+                if (tab) tab.className = `text-sm font-bold px-4 py-2 rounded-xl transition-colors whitespace-nowrap ${m.id === id ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200'}`;
+            });
+        }
+
         function renderActiveMenu() {
             const container = document.getElementById('menu-container');
+            const tabsEl = document.getElementById('menu-tabs');
             container.innerHTML = '';
+            tabsEl.innerHTML = '';
+
             if (activeMenus.length === 0) {
+                tabsEl.classList.add('hidden');
                 container.innerHTML = `<div class="py-20 text-center text-gray-400">請到菜單管理啟用一份菜單。</div>`;
                 updateCartUI();
                 return;
             }
+
+            if (!activeMenus.find(m => m.id === activeMenuTab)) activeMenuTab = activeMenus[0].id;
+
+            if (activeMenus.length > 1) {
+                tabsEl.classList.remove('hidden');
+                activeMenus.forEach(menu => {
+                    const tab = document.createElement('button');
+                    tab.id = `menu-tab-${menu.id}`;
+                    tab.onclick = () => switchMenuTab(menu.id);
+                    tab.className = `text-sm font-bold px-4 py-2 rounded-xl transition-colors whitespace-nowrap ${menu.id === activeMenuTab ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200'}`;
+                    tab.textContent = menu.title;
+                    tabsEl.appendChild(tab);
+                });
+            } else {
+                tabsEl.classList.add('hidden');
+            }
+
             activeMenus.forEach(menu => {
                 const card = document.createElement('div');
-                card.className = 'bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden';
+                card.id = `menu-card-${menu.id}`;
+                card.className = `bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden ${menu.id !== activeMenuTab ? 'hidden' : ''}`;
                 card.innerHTML = `
                     <div class="flex flex-col md:flex-row">
                         <div class="md:w-1/2 relative min-h-[200px]">
