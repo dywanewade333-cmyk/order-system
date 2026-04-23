@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>點餐系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f1f5f9; }
@@ -135,19 +137,31 @@
     </div>
 
     <script>
-        let menuLibrary = JSON.parse(localStorage.getItem('menuLibrary')) || [];
-        let activeMenu = JSON.parse(localStorage.getItem('activeMenu')) || null;
-        let allOrders = JSON.parse(localStorage.getItem('allOrders')) || [];
+        // ==============================
+        // 🔧 填入你的 Firebase 設定
+        // ==============================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCBH5fDWcjYaWeppYe1WzohCd1F9UsNPUY",
+            authDomain: "orde-4ceae.firebaseapp.com",
+            projectId: "orde-4ceae",
+            storageBucket: "orde-4ceae.firebasestorage.app",
+            messagingSenderId: "917609185557",
+            appId: "1:917609185557:web:e2d4a4116e1a6e562b291c"
+        };
+        // ==============================
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let menuLibrary = [];
+        let activeMenuId = null;
+        let activeMenu = null;
+        let allOrders = [];
         let currentUserName = "";
         let cart = {};
         let editingMenuId = null;
 
-        if (localStorage.getItem('darkMode') === '1') {
-            document.documentElement.classList.add('dark');
-            document.addEventListener('DOMContentLoaded', () => {
-                document.getElementById('dark-toggle').innerText = '☀️';
-            });
-        }
+        if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
 
         function toggleDark() {
             const isDark = document.documentElement.classList.toggle('dark');
@@ -155,13 +169,33 @@
             document.getElementById('dark-toggle').innerText = isDark ? '☀️' : '🌙';
         }
 
+        function resolveActiveMenu() {
+            activeMenu = activeMenuId ? (menuLibrary.find(m => m.id === activeMenuId) || null) : null;
+        }
+
         window.onload = () => {
-            if (localStorage.getItem('darkMode') === '1') {
-                document.getElementById('dark-toggle').innerText = '☀️';
-            }
-            renderActiveMenu();
-            renderLibrary();
+            document.getElementById('dark-toggle').innerText = localStorage.getItem('darkMode') === '1' ? '☀️' : '🌙';
             updateCartUI();
+
+            db.collection('menus').onSnapshot(snapshot => {
+                menuLibrary = snapshot.docs.map(d => d.data()).sort((a, b) => a.id - b.id);
+                resolveActiveMenu();
+                renderLibrary();
+                renderActiveMenu();
+            });
+
+            db.doc('settings/activeMenu').onSnapshot(doc => {
+                activeMenuId = doc.exists ? doc.data().id : null;
+                resolveActiveMenu();
+                cart = {};
+                renderActiveMenu();
+                updateCartUI();
+            });
+
+            db.collection('orders').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+                allOrders = snapshot.docs.map(d => d.data());
+                if (!document.getElementById('view-summary').classList.contains('hidden')) renderSummary();
+            });
         };
 
         function saveUserName() {
@@ -179,7 +213,6 @@
             document.getElementById(`btn-${view}`).classList.add('tab-active', 'text-blue-600');
             document.getElementById('cart-bar').style.display = (view === 'user') ? 'flex' : 'none';
             if (view === 'summary') renderSummary();
-            if (view === 'admin') renderLibrary();
         }
 
         function handleImageUpload(input) {
@@ -194,7 +227,7 @@
             reader.readAsDataURL(file);
         }
 
-        function saveToDatabase() {
+        async function saveToDatabase() {
             const title = document.getElementById('new-menu-title').value.trim();
             const category = document.getElementById('new-menu-category').value.trim() || '未分類';
             const rawText = document.getElementById('raw-menu-text').value.trim();
@@ -209,23 +242,14 @@
 
             if (items.length === 0) { alert("格式解析失敗，請確認每行格式為「品名 價格」。"); return; }
 
-            if (editingMenuId !== null) {
-                const idx = menuLibrary.findIndex(m => m.id === editingMenuId);
-                if (idx !== -1) {
-                    menuLibrary[idx] = { id: editingMenuId, title, category, items };
-                    if (activeMenu?.id === editingMenuId) {
-                        activeMenu = menuLibrary[idx];
-                        localStorage.setItem('activeMenu', JSON.stringify(activeMenu));
-                    }
-                }
+            try {
+                const id = editingMenuId !== null ? editingMenuId : Date.now();
+                await db.collection('menus').doc(String(id)).set({ id, title, category, items });
                 cancelEdit();
-            } else {
-                menuLibrary.push({ id: Date.now(), title, category, items });
+            } catch (e) {
+                alert("儲存失敗，請確認 Firebase 設定是否正確。");
+                console.error(e);
             }
-
-            localStorage.setItem('menuLibrary', JSON.stringify(menuLibrary));
-            renderLibrary();
-            alert("儲存成功！");
         }
 
         function editMenu(id) {
@@ -272,7 +296,7 @@
                 const grid = document.createElement('div');
                 grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3';
                 menus.forEach(menu => {
-                    const isActive = activeMenu && activeMenu.id === menu.id;
+                    const isActive = activeMenuId === menu.id;
                     const card = document.createElement('div');
                     card.className = `bg-white p-4 rounded-xl border transition-all ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
                     card.innerHTML = `
@@ -295,25 +319,16 @@
             });
         }
 
-        function setActiveMenu(id) {
-            activeMenu = menuLibrary.find(m => m.id === id);
-            localStorage.setItem('activeMenu', JSON.stringify(activeMenu));
+        async function setActiveMenu(id) {
+            await db.doc('settings/activeMenu').set({ id });
             cart = {};
-            renderActiveMenu();
-            renderLibrary();
             switchView('user');
         }
 
-        function deleteFromLibrary(id) {
+        async function deleteFromLibrary(id) {
             if (!confirm("確定刪除？")) return;
-            menuLibrary = menuLibrary.filter(m => m.id !== id);
-            localStorage.setItem('menuLibrary', JSON.stringify(menuLibrary));
-            if (activeMenu?.id === id) {
-                activeMenu = null;
-                localStorage.removeItem('activeMenu');
-            }
-            renderLibrary();
-            renderActiveMenu();
+            await db.collection('menus').doc(String(id)).delete();
+            if (activeMenuId === id) await db.doc('settings/activeMenu').delete();
         }
 
         function renderActiveMenu() {
@@ -363,10 +378,16 @@
             btn.innerText = !currentUserName ? "請輸入名字" : (count > 0 ? "確認送出點餐" : "請選擇餐點");
         }
 
-        function submitOrder() {
+        async function submitOrder() {
             const items = Object.entries(cart).map(([idx, qty]) => ({ name: activeMenu.items[idx].name, price: activeMenu.items[idx].price, qty }));
-            allOrders.unshift({ user: currentUserName, shop: activeMenu.title, items, total: document.getElementById('cart-total').innerText, time: new Date().toLocaleTimeString() });
-            localStorage.setItem('allOrders', JSON.stringify(allOrders));
+            await db.collection('orders').add({
+                user: currentUserName,
+                shop: activeMenu.title,
+                items,
+                total: document.getElementById('cart-total').innerText,
+                time: new Date().toLocaleTimeString(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
             cart = {};
             renderActiveMenu();
             switchView('summary');
@@ -382,7 +403,13 @@
             container.innerHTML = html + "</div>";
         }
 
-        function clearOrders() { if (confirm("確定清空？")) { allOrders = []; localStorage.setItem('allOrders', JSON.stringify(allOrders)); renderSummary(); } }
+        async function clearOrders() {
+            if (!confirm("確定清空？")) return;
+            const snapshot = await db.collection('orders').get();
+            const batch = db.batch();
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
     </script>
 </body>
 </html>
