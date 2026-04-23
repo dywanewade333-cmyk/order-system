@@ -519,15 +519,17 @@
 
             let aggHtml = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6 space-y-5">`;
             Object.entries(byMenu).forEach(([menuTitle, entries]) => {
-                const sorted = [...entries].sort((a, b) => (a.text[0] || '').localeCompare(b.text[0] || '', 'zh-TW'));
+                const allLines = [];
+                entries.forEach(e => e.text.split('\n').forEach(line => { if (line.trim()) allLines.push(line.trim()); }));
+                allLines.sort((a, b) => (a[0] || '').localeCompare(b[0] || '', 'zh-TW'));
                 aggHtml += `<div>
                     <div class="flex justify-between items-baseline mb-3">
                         <div class="text-xs text-blue-400 font-bold tracking-widest uppercase">${menuTitle}</div>
                         ${menuTotals[menuTitle] ? `<div class="text-xs text-blue-300 font-bold">小計 NT$${menuTotals[menuTitle]}</div>` : ''}
                     </div>`;
-                sorted.forEach(e => {
+                allLines.forEach(line => {
                     aggHtml += `<div class="border-b border-white/10 pb-2 mb-2">
-                        <div class="text-sm whitespace-pre-line text-white/90">${e.text}</div>
+                        <div class="text-sm text-white/90">${line}</div>
                     </div>`;
                 });
                 aggHtml += '</div>';
