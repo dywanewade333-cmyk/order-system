@@ -44,7 +44,7 @@
             </h1>
             <div class="flex items-center space-x-4">
                 <button onclick="switchView('user')" id="btn-user" class="text-sm font-medium tab-active py-1">我要點餐</button>
-                <button onclick="switchView('admin')" id="btn-admin" class="text-sm font-medium text-gray-500 py-1">菜單資料庫</button>
+                <button onclick="switchView('admin')" id="btn-admin" class="text-sm font-medium text-gray-500 py-1">菜單管理</button>
                 <button onclick="switchView('summary')" id="btn-summary" class="text-sm font-medium text-gray-500 py-1">訂單統計</button>
                 <button id="dark-toggle" onclick="toggleDark()" class="text-lg leading-none">🌙</button>
             </div>
@@ -55,25 +55,18 @@
 
         <!-- View: User (點餐) -->
         <section id="view-user" class="block">
-            <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border border-gray-200">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 id="active-menu-name" class="text-3xl font-black text-gray-800 italic">尚未載入菜單</h2>
-                    <div class="flex items-center gap-2">
-                        <span id="menu-img-btns"></span>
-                        <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold">今日供應中</span>
-                    </div>
-                </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm mb-4 border border-gray-200">
                 <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-widest">你的名字</label>
                 <input type="text" id="user-name-input" oninput="saveUserName()" class="w-full p-4 rounded-xl bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-400 outline-none transition-all text-lg font-bold" placeholder="輸入名字開始點餐...">
             </div>
-            <div id="menu-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
+            <div id="menu-container" class="space-y-4"></div>
         </section>
 
-        <!-- View: Admin (資料庫管理) -->
+        <!-- View: Admin (菜單管理) -->
         <section id="view-admin" class="hidden">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 id="form-title" class="text-lg font-bold flex items-center"><span class="mr-2">➕</span> 新增菜單到資料庫</h2>
+                    <h2 id="form-title" class="text-lg font-bold flex items-center"><span class="mr-2">➕</span> 新增菜單</h2>
                     <button id="cancel-edit-btn" onclick="cancelEdit()" class="hidden text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">取消編輯</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -85,30 +78,32 @@
                                 <p class="text-sm font-bold text-blue-600">上傳菜單圖片</p>
                                 <p class="text-xs text-gray-400 mt-1">點此選取或拍照</p>
                             </div>
-                            <img id="image-preview" class="hidden max-h-48 mx-auto rounded shadow-sm">
+                            <img id="image-preview" class="hidden max-h-64 mx-auto rounded shadow-sm">
                         </label>
                     </div>
-                    <div class="flex flex-col">
-                        <label class="text-xs font-bold text-gray-400 mb-1">店名</label>
-                        <input type="text" id="new-menu-title" class="w-full p-2 border-b mb-3 outline-none focus:border-blue-500 font-bold text-lg" placeholder="輸入店名">
-                        <label class="text-xs font-bold text-gray-400 mb-1">分類</label>
-                        <input type="text" id="new-menu-category" list="category-list" class="w-full p-2 border-b mb-4 outline-none focus:border-blue-500 text-sm" placeholder="例：午餐、飲料、早餐">
-                        <datalist id="category-list">
-                            <option value="早餐">
-                            <option value="午餐">
-                            <option value="晚餐">
-                            <option value="飲料">
-                            <option value="點心">
-                        </datalist>
-                        <label class="text-xs font-bold text-gray-400 mb-1">品項清單（一般：品名 價格 ／ 多規格：品名 大65/小50）</label>
-                        <textarea id="raw-menu-text" class="flex-grow w-full h-48 p-3 bg-gray-50 rounded-lg text-xs font-mono outline-none focus:bg-white border border-transparent focus:border-blue-200" placeholder="滷肉飯 35&#10;排骨飯 70&#10;珍珠奶茶 大65/小50&#10;美式咖啡 熱55/冰60"></textarea>
-                        <button id="save-btn" onclick="saveToDatabase()" class="mt-4 bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center">
-                            <span class="mr-2">💾</span> 儲存到我的資料庫
+                    <div class="flex flex-col gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 mb-1 block">店名</label>
+                            <input type="text" id="new-menu-title" class="w-full p-2 border-b outline-none focus:border-blue-500 font-bold text-lg" placeholder="輸入店名">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 mb-1 block">分類</label>
+                            <input type="text" id="new-menu-category" list="category-list" class="w-full p-2 border-b outline-none focus:border-blue-500 text-sm" placeholder="例：午餐、飲料、早餐">
+                            <datalist id="category-list">
+                                <option value="早餐">
+                                <option value="午餐">
+                                <option value="晚餐">
+                                <option value="飲料">
+                                <option value="點心">
+                            </datalist>
+                        </div>
+                        <button id="save-btn" onclick="saveToDatabase()" class="mt-auto bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center">
+                            <span class="mr-2">💾</span> 儲存到資料庫
                         </button>
                     </div>
                 </div>
             </div>
-            <h2 class="text-lg font-bold mb-4 flex items-center px-2 text-gray-700"><span class="mr-2">📁</span> 我的菜單資料庫</h2>
+            <h2 class="text-lg font-bold mb-4 flex items-center px-2 text-gray-700"><span class="mr-2">📁</span> 菜單資料庫</h2>
             <div id="database-list" class="space-y-6"></div>
         </section>
 
@@ -128,11 +123,11 @@
     <div id="cart-bar" class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 px-6 py-4 shadow-2xl z-50">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div>
-                <p class="text-[10px] text-gray-400 font-black uppercase">目前總計</p>
-                <p class="text-2xl font-black text-blue-600">NT$ <span id="cart-total">0</span></p>
+                <p class="text-[10px] text-gray-400 font-black uppercase">點餐人</p>
+                <p class="text-lg font-black text-gray-700"><span id="cart-name-display">—</span></p>
             </div>
-            <button id="submit-btn" onclick="submitOrder()" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-200 disabled:bg-gray-200 disabled:text-gray-400 transition-all active:scale-95">
-                送出點餐
+            <button id="submit-btn" onclick="submitOrder()" disabled class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-200 disabled:bg-gray-200 disabled:text-gray-400 transition-all active:scale-95">
+                請輸入名字
             </button>
         </div>
     </div>
@@ -142,9 +137,6 @@
     </div>
 
     <script>
-        // ==============================
-        // 🔧 Firebase 設定
-        // ==============================
         const firebaseConfig = {
             apiKey: "AIzaSyCBH5fDWcjYaWeppYe1WzohCd1F9UsNPUY",
             authDomain: "orde-4ceae.firebaseapp.com",
@@ -153,19 +145,16 @@
             messagingSenderId: "917609185557",
             appId: "1:917609185557:web:e2d4a4116e1a6e562b291c"
         };
-        // ==============================
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
         let menuLibrary = [];
-        let activeMenuIds = [];   // 多選啟用
+        let activeMenuIds = [];
         let activeMenus = [];
         let allOrders = [];
         let currentUserName = "";
         let currentImageData = null;
-        let cart = {};       // key: `${menuId}_${itemIdx}` 或 `${menuId}_${itemIdx}_v${vi}`
-        let cartOptions = {}; // key: `${menuId}_${itemIdx}` → { sugar, ice }
         let editingMenuId = null;
 
         if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
@@ -178,48 +167,6 @@
 
         function resolveActiveMenus() {
             activeMenus = activeMenuIds.map(id => menuLibrary.find(m => m.id === id)).filter(Boolean);
-        }
-
-        // 解析品項行：支援 "品名 價格" 或 "品名 大65/小50"
-        function parseLine(line) {
-            const t = line.trim();
-            if (!t) return null;
-            const vm = t.match(/^(.+?)\s+((?:[^\d\s\/]+\d+)(?:\/[^\d\s\/]+\d+)+)$/);
-            if (vm) {
-                const name = vm[1].trim();
-                const variants = vm[2].split('/').map(v => {
-                    const m = v.match(/^([^\d]+)(\d+)$/);
-                    return m ? { size: m[1].trim(), price: parseInt(m[2]) } : null;
-                }).filter(Boolean);
-                if (variants.length >= 2) return { name, variants };
-            }
-            const parts = t.split(/\s+/);
-            if (parts.length < 2) return null;
-            const price = parseInt(parts.pop().replace(/[^0-9]/g, '')) || 0;
-            const name = parts.join(' ');
-            return name ? { name, price } : null;
-        }
-
-        function itemToText(item) {
-            if (item.variants) return `${item.name} ${item.variants.map(v => `${v.size}${v.price}`).join('/')}`;
-            return `${item.name} ${item.price}`;
-        }
-
-        function getCartItemInfo(key) {
-            const parts = key.split('_');
-            const menuId = parseInt(parts[0]);
-            const itemIdx = parseInt(parts[1]);
-            const isVariant = parts.length > 2;
-            const variantIdx = isVariant ? parseInt(parts[2].replace('v', '')) : null;
-            const menu = activeMenus.find(m => m.id === menuId);
-            if (!menu) return null;
-            const item = menu.items[itemIdx];
-            if (!item) return null;
-            if (isVariant && item.variants) {
-                const v = item.variants[variantIdx];
-                return v ? { name: `${item.name}(${v.size})`, price: v.price } : null;
-            }
-            return { name: item.name, price: item.price };
         }
 
         window.onload = () => {
@@ -236,8 +183,6 @@
             db.doc('settings/activeMenus').onSnapshot(doc => {
                 activeMenuIds = doc.exists ? (doc.data().ids || []) : [];
                 resolveActiveMenus();
-                cart = {};
-                cartOptions = {};
                 renderLibrary();
                 renderActiveMenu();
                 updateCartUI();
@@ -293,13 +238,10 @@
         async function saveToDatabase() {
             const title = document.getElementById('new-menu-title').value.trim();
             const category = document.getElementById('new-menu-category').value.trim() || '未分類';
-            const rawText = document.getElementById('raw-menu-text').value.trim();
-            if (!title || !rawText) { alert("請確保已有店名與品項內容。"); return; }
-            const items = rawText.split('\n').map(parseLine).filter(Boolean);
-            if (items.length === 0) { alert("格式解析失敗，請確認格式。"); return; }
+            if (!title) { alert("請輸入店名。"); return; }
             try {
                 const id = editingMenuId !== null ? editingMenuId : Date.now();
-                await db.collection('menus').doc(String(id)).set({ id, title, category, items, imageData: currentImageData || null });
+                await db.collection('menus').doc(String(id)).set({ id, title, category, imageData: currentImageData || null });
                 cancelEdit();
                 alert("儲存成功！");
             } catch (e) {
@@ -314,7 +256,6 @@
             editingMenuId = id;
             document.getElementById('new-menu-title').value = menu.title;
             document.getElementById('new-menu-category').value = menu.category || '';
-            document.getElementById('raw-menu-text').value = menu.items.map(itemToText).join('\n');
             currentImageData = menu.imageData || null;
             if (currentImageData) {
                 document.getElementById('image-preview').src = currentImageData;
@@ -335,11 +276,10 @@
             currentImageData = null;
             document.getElementById('new-menu-title').value = '';
             document.getElementById('new-menu-category').value = '';
-            document.getElementById('raw-menu-text').value = '';
             document.getElementById('image-preview').classList.add('hidden');
             document.getElementById('upload-placeholder').classList.remove('hidden');
-            document.getElementById('form-title').innerHTML = '<span class="mr-2">➕</span> 新增菜單到資料庫';
-            document.getElementById('save-btn').innerHTML = '<span class="mr-2">💾</span> 儲存到我的資料庫';
+            document.getElementById('form-title').innerHTML = '<span class="mr-2">➕</span> 新增菜單';
+            document.getElementById('save-btn').innerHTML = '<span class="mr-2">💾</span> 儲存到資料庫';
             document.getElementById('cancel-edit-btn').classList.add('hidden');
         }
 
@@ -361,19 +301,23 @@
                 menus.forEach(menu => {
                     const isActive = activeMenuIds.includes(menu.id);
                     const card = document.createElement('div');
-                    card.className = `bg-white p-4 rounded-xl border transition-all ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
+                    card.className = `bg-white rounded-xl border transition-all overflow-hidden ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
                     card.innerHTML = `
-                        ${menu.imageData ? `<img src="${menu.imageData}" class="w-full h-24 object-cover rounded-lg mb-2 cursor-pointer" onclick="viewMenuImage(menuLibrary.find(m=>m.id===${menu.id}).imageData)">` : ''}
-                        <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-bold text-gray-800">${menu.title}</h3>
-                            <span class="text-[10px] text-gray-400">${menu.items.length} 品項</span>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button onclick="toggleActiveMenu(${menu.id})" class="flex-1 text-xs py-2 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
-                                ${isActive ? '✓ 使用中' : '啟用'}
-                            </button>
-                            <button onclick="editMenu(${menu.id})" class="p-2 text-blue-300">✏️</button>
-                            <button onclick="deleteFromLibrary(${menu.id})" class="p-2 text-red-300">🗑️</button>
+                        ${menu.imageData
+                            ? `<img src="${menu.imageData}" class="w-full h-32 object-cover cursor-pointer" onclick="viewMenuImage(menuLibrary.find(m=>m.id===${menu.id}).imageData)">`
+                            : `<div class="w-full h-32 bg-gray-100 flex items-center justify-center text-gray-300 text-4xl">📋</div>`}
+                        <div class="p-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-bold text-gray-800">${menu.title}</h3>
+                                <span class="text-[10px] text-gray-400">${menu.category || '未分類'}</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="toggleActiveMenu(${menu.id})" class="flex-1 text-xs py-2 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
+                                    ${isActive ? '✓ 使用中' : '啟用'}
+                                </button>
+                                <button onclick="editMenu(${menu.id})" class="p-2 text-blue-300">✏️</button>
+                                <button onclick="deleteFromLibrary(${menu.id})" class="p-2 text-red-300">🗑️</button>
+                            </div>
                         </div>
                     `;
                     grid.appendChild(card);
@@ -397,128 +341,63 @@
                 await db.doc('settings/activeMenus').set({ ids: activeMenuIds.filter(i => i !== id) });
         }
 
-        function drinkOptHTML(itemKey) {
-            const opts = cartOptions[itemKey] || { sugar: '全糖', ice: '正常冰' };
-            const sugars = ['全糖','8分糖','半糖','微糖','1分糖','無糖'];
-            const ices = ['正常冰','少冰','微冰','去冰'];
-            const sel = (arr, cur) => arr.map(s => `<option${s===cur?' selected':''}>${s}</option>`).join('');
-            return `<div class="mt-2 flex gap-1">
-                <select onchange="setDrinkOpt('${itemKey}','sugar',this.value)" class="flex-1 text-xs rounded-lg border border-gray-200 bg-gray-50 p-1 outline-none">${sel(sugars,opts.sugar)}</select>
-                <select onchange="setDrinkOpt('${itemKey}','ice',this.value)" class="flex-1 text-xs rounded-lg border border-gray-200 bg-gray-50 p-1 outline-none">${sel(ices,opts.ice)}</select>
-            </div>`;
-        }
-
-        function setDrinkOpt(itemKey, field, value) {
-            if (!cartOptions[itemKey]) cartOptions[itemKey] = { sugar: '全糖', ice: '正常冰' };
-            cartOptions[itemKey][field] = value;
-        }
-
         function renderActiveMenu() {
             const container = document.getElementById('menu-container');
-            const titleDisplay = document.getElementById('active-menu-name');
             container.innerHTML = '';
             if (activeMenus.length === 0) {
-                titleDisplay.innerText = "尚未選擇菜單";
-                container.innerHTML = `<div class="col-span-full py-20 text-center text-gray-400">請到菜單資料庫啟用一份菜單。</div>`;
+                container.innerHTML = `<div class="py-20 text-center text-gray-400">請到菜單管理啟用一份菜單。</div>`;
                 updateCartUI();
                 return;
             }
-            titleDisplay.innerText = activeMenus.map(m => m.title).join(' · ');
-            const imgBtns = document.getElementById('menu-img-btns');
-            if (activeMenus.length === 1 && activeMenus[0].imageData) {
-                imgBtns.innerHTML = `<button onclick="viewMenuImage(activeMenus[0].imageData)" class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-bold">📷 菜單圖片</button>`;
-            } else {
-                imgBtns.innerHTML = '';
-            }
             activeMenus.forEach(menu => {
-                const isDrink = menu.category === '飲料';
-                if (activeMenus.length > 1) {
-                    const header = document.createElement('div');
-                    header.className = 'col-span-full flex items-center justify-between text-xs font-bold text-gray-400 mt-3 mb-1 pb-1 border-b tracking-widest';
-                    header.innerHTML = `<span class="uppercase">${menu.title}</span>${menu.imageData ? `<button onclick="viewMenuImage(activeMenus.find(m=>m.id===${menu.id}).imageData)" class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full normal-case font-bold">📷 圖片</button>` : ''}`;
-                    container.appendChild(header);
-                }
-                menu.items.forEach((item, idx) => {
-                    const card = document.createElement('div');
-                    const itemKey = `${menu.id}_${idx}`;
-                    if (item.variants) {
-                        card.className = "bg-white p-4 rounded-xl border border-gray-100";
-                        const rows = item.variants.map((v, vi) => {
-                            const key = `${menu.id}_${idx}_v${vi}`;
-                            return `<div class="flex items-center justify-between mt-2">
-                                <span class="text-xs text-gray-600">${v.size} <span class="font-black text-blue-600">$${v.price}</span></span>
-                                <div class="flex items-center bg-gray-50 rounded-lg px-1">
-                                    <button onclick="addToCart('${key}',-1)" class="w-7 h-7 text-sm">-</button>
-                                    <span class="text-xs font-bold w-5 text-center" id="qty-${key}">${cart[key]||0}</span>
-                                    <button onclick="addToCart('${key}',1)" class="w-7 h-7 text-sm bg-white rounded shadow-sm text-blue-600">+</button>
-                                </div>
-                            </div>`;
-                        }).join('');
-                        card.innerHTML = `<h4 class="font-bold text-gray-800 text-sm line-clamp-2">${item.name}</h4>${rows}${isDrink ? drinkOptHTML(itemKey) : ''}`;
-                    } else {
-                        card.className = "bg-white p-4 rounded-xl border border-gray-100 flex flex-col justify-between";
-                        card.innerHTML = `
-                            <div><h4 class="font-bold text-gray-800 text-sm mb-1 line-clamp-2">${item.name}</h4><p class="text-blue-600 font-black mb-3">$${item.price}</p></div>
-                            <div>
-                                <div class="flex items-center justify-between bg-gray-50 rounded-lg p-1">
-                                    <button onclick="addToCart('${itemKey}',-1)" class="w-8 h-8">-</button>
-                                    <span class="text-sm font-bold" id="qty-${itemKey}">${cart[itemKey]||0}</span>
-                                    <button onclick="addToCart('${itemKey}',1)" class="w-8 h-8 bg-white rounded shadow-sm text-blue-600">+</button>
-                                </div>
-                                ${isDrink ? drinkOptHTML(itemKey) : ''}
-                            </div>`;
-                    }
-                    container.appendChild(card);
-                });
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden';
+                card.innerHTML = `
+                    <div class="flex flex-col md:flex-row">
+                        <div class="md:w-1/2 relative min-h-[200px]">
+                            ${menu.imageData
+                                ? `<img src="${menu.imageData}" class="w-full h-full object-cover cursor-pointer min-h-[200px]" onclick="viewMenuImage(activeMenus.find(m=>m.id===${menu.id}).imageData)">`
+                                : `<div class="w-full min-h-[200px] h-full bg-gray-100 flex items-center justify-center text-gray-300 text-6xl">📋</div>`}
+                            <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
+                                <span class="text-sm font-black text-gray-800">${menu.title}</span>
+                            </div>
+                            ${menu.imageData ? `<button onclick="viewMenuImage(activeMenus.find(m=>m.id===${menu.id}).imageData)" class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-xs px-2 py-1 rounded-full font-bold text-gray-600 shadow-sm">🔍 放大</button>` : ''}
+                        </div>
+                        <div class="md:w-1/2 p-5 flex flex-col">
+                            <label class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">輸入點餐內容</label>
+                            <textarea id="order-text-${menu.id}" oninput="updateCartUI()" class="flex-grow w-full p-3 bg-gray-50 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-200 border border-transparent focus:border-blue-200 resize-none" rows="7" placeholder="對照左邊菜單輸入要點的品項&#10;&#10;例：&#10;珍珠奶茶大 半糖少冰&#10;黑糖拿鐵中 無糖去冰"></textarea>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
             });
-            updateCartUI();
-        }
-
-        function addToCart(key, change) {
-            cart[key] = (cart[key] || 0) + change;
-            if (cart[key] <= 0) delete cart[key];
-            const el = document.getElementById(`qty-${key}`);
-            if (el) el.innerText = cart[key] || 0;
             updateCartUI();
         }
 
         function updateCartUI() {
-            let total = 0, count = 0;
-            Object.entries(cart).forEach(([key, qty]) => {
-                const info = getCartItemInfo(key);
-                if (!info) return;
-                total += info.price * qty;
-                count += qty;
-            });
-            document.getElementById('cart-total').innerText = total;
+            document.getElementById('cart-name-display').innerText = currentUserName || '—';
             const btn = document.getElementById('submit-btn');
-            btn.disabled = !(currentUserName && count > 0);
-            btn.innerText = !currentUserName ? "請輸入名字" : (count > 0 ? "確認送出點餐" : "請選擇餐點");
+            const hasText = activeMenus.some(m => {
+                const el = document.getElementById(`order-text-${m.id}`);
+                return el && el.value.trim().length > 0;
+            });
+            btn.disabled = !(currentUserName && hasText);
+            btn.innerText = !currentUserName ? "請輸入名字" : (hasText ? "確認送出點餐" : "請輸入點餐內容");
         }
 
         async function submitOrder() {
-            const items = Object.entries(cart).map(([key, qty]) => {
-                const info = getCartItemInfo(key);
-                if (!info) return null;
-                const parts = key.split('_');
-                const menuId = parseInt(parts[0]);
-                const itemIdx = parseInt(parts[1]);
-                const menu = activeMenus.find(m => m.id === menuId);
-                const isDrink = menu && menu.category === '飲料';
-                const optKey = `${menuId}_${itemIdx}`;
-                const opts = cartOptions[optKey] || { sugar: '全糖', ice: '正常冰' };
-                const name = isDrink ? `${info.name}／${opts.sugar}／${opts.ice}` : info.name;
-                return { name, price: info.price, qty, menuTitle: menu ? menu.title : '未分類' };
+            const orders = activeMenus.map(menu => {
+                const el = document.getElementById(`order-text-${menu.id}`);
+                const text = el ? el.value.trim() : '';
+                return text ? { menuTitle: menu.title, text } : null;
             }).filter(Boolean);
+            if (orders.length === 0) return;
             await db.collection('orders').add({
                 user: currentUserName,
-                items,
-                total: document.getElementById('cart-total').innerText,
+                orders,
                 time: new Date().toLocaleTimeString(),
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            cart = {};
-            cartOptions = {};
             renderActiveMenu();
             switchView('summary');
         }
@@ -526,24 +405,47 @@
         function renderSummary() {
             const container = document.getElementById('order-summary-content');
             if (allOrders.length === 0) { container.innerHTML = '<p class="text-center py-20 text-gray-400">無紀錄</p>'; return; }
+
             const byMenu = {};
-            allOrders.forEach(o => o.items.forEach(i => {
-                const mt = i.menuTitle || '未分類';
-                if (!byMenu[mt]) byMenu[mt] = {};
-                byMenu[mt][i.name] = (byMenu[mt][i.name] || 0) + i.qty;
-            }));
-            let aggHtml = '<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6 space-y-4">';
-            Object.entries(byMenu).forEach(([menuTitle, items]) => {
-                aggHtml += `<div><div class="text-xs text-blue-400 font-bold mb-2 tracking-widest">${menuTitle}</div>`;
-                Object.entries(items).forEach(([name, qty]) => {
-                    aggHtml += `<div class="flex justify-between border-b border-white/10 pb-1 mb-1"><span>${name}</span><span class="font-bold">x${qty}</span></div>`;
+            allOrders.forEach(o => {
+                const list = o.orders || [];
+                list.forEach(item => {
+                    const mt = item.menuTitle || '未分類';
+                    if (!byMenu[mt]) byMenu[mt] = [];
+                    byMenu[mt].push({ user: o.user, text: item.text });
+                });
+            });
+
+            let aggHtml = '<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6 space-y-5">';
+            Object.entries(byMenu).forEach(([menuTitle, entries]) => {
+                aggHtml += `<div><div class="text-xs text-blue-400 font-bold mb-3 tracking-widest uppercase">${menuTitle}</div>`;
+                entries.forEach(e => {
+                    aggHtml += `<div class="border-b border-white/10 pb-2 mb-2">
+                        <span class="text-xs font-bold text-gray-300">${e.user}</span>
+                        <div class="text-sm mt-0.5 whitespace-pre-line text-white/90">${e.text}</div>
+                    </div>`;
                 });
                 aggHtml += '</div>';
             });
             aggHtml += '</div>';
-            let ordersHtml = '<div class="space-y-4">';
+
+            let ordersHtml = '<div class="space-y-3">';
             allOrders.forEach(o => {
-                ordersHtml += `<div class="bg-gray-50 p-4 rounded-xl border flex justify-between items-start"><div><b>${o.user}</b> <span class="text-blue-600">$${o.total}</span><div class="text-xs text-gray-500 mt-1">${o.items.map(i => `${i.name}x${i.qty}`).join('、')}</div></div><button onclick="deleteOrder('${o._id}')" class="text-xs text-red-400 hover:text-red-600 ml-3 mt-1 flex-shrink-0">✕ 移除</button></div>`;
+                const list = o.orders || [];
+                ordersHtml += `<div class="bg-gray-50 p-4 rounded-xl border">
+                    <div class="flex justify-between items-start mb-2">
+                        <b class="text-gray-800">${o.user}</b>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-gray-400">${o.time || ''}</span>
+                            <button onclick="deleteOrder('${o._id}')" class="text-xs text-red-400 hover:text-red-600 font-bold">✕ 移除</button>
+                        </div>
+                    </div>
+                    ${list.map(item => `
+                        <div class="mt-1">
+                            <span class="text-xs font-bold text-blue-500">${item.menuTitle}</span>
+                            <div class="text-sm text-gray-600 whitespace-pre-line mt-0.5">${item.text}</div>
+                        </div>`).join('<hr class="my-2 border-gray-100">')}
+                </div>`;
             });
             container.innerHTML = aggHtml + ordersHtml + '</div>';
         }
