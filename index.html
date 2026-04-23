@@ -57,7 +57,7 @@
         <section id="view-user" class="block">
             <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border border-gray-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 id="active-menu-name" class="text-xl font-black text-gray-800 italic">尚未載入菜單</h2>
+                    <h2 id="active-menu-name" class="text-3xl font-black text-gray-800 italic">尚未載入菜單</h2>
                     <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold">今日供應中</span>
                 </div>
                 <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-widest">你的名字</label>
@@ -234,7 +234,7 @@
             });
 
             db.collection('orders').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
-                allOrders = snapshot.docs.map(d => d.data());
+                allOrders = snapshot.docs.map(d => ({ ...d.data(), _id: d.id }));
                 if (!document.getElementById('view-summary').classList.contains('hidden')) renderSummary();
             });
         };
@@ -460,8 +460,13 @@
             const aggregate = {};
             allOrders.forEach(o => o.items.forEach(i => aggregate[i.name] = (aggregate[i.name] || 0) + i.qty));
             let html = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6">${Object.entries(aggregate).map(([name, qty]) => `<div class="flex justify-between border-b border-white/10 pb-1 mb-1"><span>${name}</span><span class="font-bold">x${qty}</span></div>`).join('')}</div><div class="space-y-4">`;
-            allOrders.forEach(o => { html += `<div class="bg-gray-50 p-4 rounded-xl border"><b>${o.user}</b> <span class="text-blue-600">$${o.total}</span><div class="text-xs text-gray-500">${o.items.map(i => `${i.name}x${i.qty}`).join(', ')}</div></div>`; });
+            allOrders.forEach(o => { html += `<div class="bg-gray-50 p-4 rounded-xl border flex justify-between items-start"><div><b>${o.user}</b> <span class="text-blue-600">$${o.total}</span><div class="text-xs text-gray-500 mt-1">${o.items.map(i => `${i.name}x${i.qty}`).join(', ')}</div></div><button onclick="deleteOrder('${o._id}')" class="text-xs text-red-400 hover:text-red-600 ml-3 mt-1 flex-shrink-0">✕ 移除</button></div>`; });
             container.innerHTML = html + "</div>";
+        }
+
+        async function deleteOrder(id) {
+            if (!confirm("確定移除這筆訂單？")) return;
+            await db.collection('orders').doc(id).delete();
         }
 
         async function clearOrders() {
