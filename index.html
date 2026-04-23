@@ -58,7 +58,10 @@
             <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border border-gray-200">
                 <div class="flex justify-between items-center mb-4">
                     <h2 id="active-menu-name" class="text-3xl font-black text-gray-800 italic">尚未載入菜單</h2>
-                    <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold">今日供應中</span>
+                    <div class="flex items-center gap-2">
+                        <span id="menu-img-btns"></span>
+                        <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold">今日供應中</span>
+                    </div>
                 </div>
                 <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-widest">你的名字</label>
                 <input type="text" id="user-name-input" oninput="saveUserName()" class="w-full p-4 rounded-xl bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-400 outline-none transition-all text-lg font-bold" placeholder="輸入名字開始點餐...">
@@ -134,6 +137,10 @@
         </div>
     </div>
 
+    <div id="image-modal" class="hidden fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-4" onclick="closeImageModal()">
+        <img id="modal-img" class="max-w-full max-h-full rounded-xl shadow-2xl object-contain">
+    </div>
+
     <script>
         // ==============================
         // 🔧 Firebase 設定
@@ -156,6 +163,7 @@
         let activeMenus = [];
         let allOrders = [];
         let currentUserName = "";
+        let currentImageData = null;
         let cart = {};       // key: `${menuId}_${itemIdx}` 或 `${menuId}_${itemIdx}_v${vi}`
         let cartOptions = {}; // key: `${menuId}_${itemIdx}` → { sugar, ice }
         let editingMenuId = null;
@@ -263,9 +271,21 @@
             if (!file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
-                document.getElementById('image-preview').src = e.target.result;
-                document.getElementById('image-preview').classList.remove('hidden');
-                document.getElementById('upload-placeholder').classList.add('hidden');
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxW = 1200, maxH = 1200;
+                    let w = img.width, h = img.height;
+                    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+                    if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    currentImageData = canvas.toDataURL('image/jpeg', 0.75);
+                    document.getElementById('image-preview').src = currentImageData;
+                    document.getElementById('image-preview').classList.remove('hidden');
+                    document.getElementById('upload-placeholder').classList.add('hidden');
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
@@ -279,7 +299,7 @@
             if (items.length === 0) { alert("格式解析失敗，請確認格式。"); return; }
             try {
                 const id = editingMenuId !== null ? editingMenuId : Date.now();
-                await db.collection('menus').doc(String(id)).set({ id, title, category, items });
+                await db.collection('menus').doc(String(id)).set({ id, title, category, items, imageData: currentImageData || null });
                 cancelEdit();
                 alert("儲存成功！");
             } catch (e) {
@@ -295,6 +315,15 @@
             document.getElementById('new-menu-title').value = menu.title;
             document.getElementById('new-menu-category').value = menu.category || '';
             document.getElementById('raw-menu-text').value = menu.items.map(itemToText).join('\n');
+            currentImageData = menu.imageData || null;
+            if (currentImageData) {
+                document.getElementById('image-preview').src = currentImageData;
+                document.getElementById('image-preview').classList.remove('hidden');
+                document.getElementById('upload-placeholder').classList.add('hidden');
+            } else {
+                document.getElementById('image-preview').classList.add('hidden');
+                document.getElementById('upload-placeholder').classList.remove('hidden');
+            }
             document.getElementById('form-title').innerHTML = '<span class="mr-2">✏️</span> 編輯菜單';
             document.getElementById('save-btn').innerHTML = '<span class="mr-2">💾</span> 更新菜單';
             document.getElementById('cancel-edit-btn').classList.remove('hidden');
@@ -303,6 +332,7 @@
 
         function cancelEdit() {
             editingMenuId = null;
+            currentImageData = null;
             document.getElementById('new-menu-title').value = '';
             document.getElementById('new-menu-category').value = '';
             document.getElementById('raw-menu-text').value = '';
@@ -333,6 +363,7 @@
                     const card = document.createElement('div');
                     card.className = `bg-white p-4 rounded-xl border transition-all ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
                     card.innerHTML = `
+                        ${menu.imageData ? `<img src="${menu.imageData}" class="w-full h-24 object-cover rounded-lg mb-2 cursor-pointer" onclick="viewMenuImage(menuLibrary.find(m=>m.id===${menu.id}).imageData)">` : ''}
                         <div class="flex justify-between items-start mb-2">
                             <h3 class="font-bold text-gray-800">${menu.title}</h3>
                             <span class="text-[10px] text-gray-400">${menu.items.length} 品項</span>
@@ -393,12 +424,18 @@
                 return;
             }
             titleDisplay.innerText = activeMenus.map(m => m.title).join(' · ');
+            const imgBtns = document.getElementById('menu-img-btns');
+            if (activeMenus.length === 1 && activeMenus[0].imageData) {
+                imgBtns.innerHTML = `<button onclick="viewMenuImage(activeMenus[0].imageData)" class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-bold">📷 菜單圖片</button>`;
+            } else {
+                imgBtns.innerHTML = '';
+            }
             activeMenus.forEach(menu => {
                 const isDrink = menu.category === '飲料';
                 if (activeMenus.length > 1) {
                     const header = document.createElement('div');
-                    header.className = 'col-span-full text-xs font-bold text-gray-400 mt-3 mb-1 pb-1 border-b uppercase tracking-widest';
-                    header.innerText = menu.title;
+                    header.className = 'col-span-full flex items-center justify-between text-xs font-bold text-gray-400 mt-3 mb-1 pb-1 border-b tracking-widest';
+                    header.innerHTML = `<span class="uppercase">${menu.title}</span>${menu.imageData ? `<button onclick="viewMenuImage(activeMenus.find(m=>m.id===${menu.id}).imageData)" class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full normal-case font-bold">📷 圖片</button>` : ''}`;
                     container.appendChild(header);
                 }
                 menu.items.forEach((item, idx) => {
@@ -509,6 +546,16 @@
                 ordersHtml += `<div class="bg-gray-50 p-4 rounded-xl border flex justify-between items-start"><div><b>${o.user}</b> <span class="text-blue-600">$${o.total}</span><div class="text-xs text-gray-500 mt-1">${o.items.map(i => `${i.name}x${i.qty}`).join('、')}</div></div><button onclick="deleteOrder('${o._id}')" class="text-xs text-red-400 hover:text-red-600 ml-3 mt-1 flex-shrink-0">✕ 移除</button></div>`;
             });
             container.innerHTML = aggHtml + ordersHtml + '</div>';
+        }
+
+        function viewMenuImage(src) {
+            if (!src) return;
+            document.getElementById('modal-img').src = src;
+            document.getElementById('image-modal').classList.remove('hidden');
+        }
+
+        function closeImageModal() {
+            document.getElementById('image-modal').classList.add('hidden');
         }
 
         async function deleteOrder(id) {
