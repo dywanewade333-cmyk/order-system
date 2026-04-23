@@ -341,6 +341,30 @@
                 await db.doc('settings/activeMenus').set({ ids: activeMenuIds.filter(i => i !== id) });
         }
 
+        function orderRowHTML() {
+            return `<div class="flex gap-2 items-center">
+                <input type="text" placeholder="品項名稱" oninput="updateCartUI()" class="flex-1 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none">
+                <input type="text" placeholder="金額" oninput="updateCartUI()" class="w-20 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none text-center">
+                <button onclick="removeOrderRow(this)" class="w-7 h-7 flex-shrink-0 text-gray-200 hover:text-red-400 text-xl leading-none">×</button>
+            </div>`;
+        }
+
+        function addOrderRow(menuId) {
+            const container = document.getElementById(`order-rows-${menuId}`);
+            if (!container) return;
+            const div = document.createElement('div');
+            div.innerHTML = orderRowHTML();
+            container.appendChild(div.firstElementChild);
+        }
+
+        function removeOrderRow(btn) {
+            const container = btn.closest('[id^="order-rows-"]');
+            if (container && container.children.length > 1) {
+                btn.closest('.flex').remove();
+                updateCartUI();
+            }
+        }
+
         function renderActiveMenu() {
             const container = document.getElementById('menu-container');
             container.innerHTML = '';
@@ -364,8 +388,18 @@
                             ${menu.imageData ? `<button onclick="viewMenuImage(activeMenus.find(m=>m.id===${menu.id}).imageData)" class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-xs px-2 py-1 rounded-full font-bold text-gray-600 shadow-sm">🔍 放大</button>` : ''}
                         </div>
                         <div class="md:w-1/2 p-5 flex flex-col">
-                            <label class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">輸入點餐內容</label>
-                            <textarea id="order-text-${menu.id}" oninput="updateCartUI()" class="flex-grow w-full p-3 bg-gray-50 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-200 border border-transparent focus:border-blue-200 resize-none" rows="7" placeholder="對照左邊菜單輸入要點的品項&#10;&#10;例：&#10;珍珠奶茶大 半糖少冰&#10;黑糖拿鐵中 無糖去冰"></textarea>
+                            <div class="flex gap-2 text-xs font-bold text-gray-400 mb-2 px-1">
+                                <span class="flex-1">品項</span>
+                                <span class="w-20 text-center">金額</span>
+                                <span class="w-7"></span>
+                            </div>
+                            <div id="order-rows-${menu.id}" class="space-y-2">
+                                ${orderRowHTML()}
+                                ${orderRowHTML()}
+                            </div>
+                            <button onclick="addOrderRow('${menu.id}')" class="mt-3 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 py-2 rounded-xl transition-colors">
+                                ＋ 新增品項
+                            </button>
                         </div>
                     </div>
                 `;
@@ -378,8 +412,9 @@
             document.getElementById('cart-name-display').innerText = currentUserName || '—';
             const btn = document.getElementById('submit-btn');
             const hasText = activeMenus.some(m => {
-                const el = document.getElementById(`order-text-${m.id}`);
-                return el && el.value.trim().length > 0;
+                const container = document.getElementById(`order-rows-${m.id}`);
+                if (!container) return false;
+                return Array.from(container.querySelectorAll('input[placeholder="品項名稱"]')).some(i => i.value.trim());
             });
             btn.disabled = !(currentUserName && hasText);
             btn.innerText = !currentUserName ? "請輸入名字" : (hasText ? "確認送出點餐" : "請輸入點餐內容");
@@ -387,14 +422,23 @@
 
         async function submitOrder() {
             const orders = activeMenus.map(menu => {
-                const el = document.getElementById(`order-text-${menu.id}`);
-                const text = el ? el.value.trim() : '';
-                return text ? { menuTitle: menu.title, text } : null;
+                const container = document.getElementById(`order-rows-${menu.id}`);
+                if (!container) return null;
+                const rows = Array.from(container.children).map(row => {
+                    const inputs = row.querySelectorAll('input');
+                    return { item: inputs[0]?.value.trim() || '', price: inputs[1]?.value.trim() || '' };
+                }).filter(r => r.item);
+                if (rows.length === 0) return null;
+                const subtotal = rows.reduce((s, r) => s + (parseInt(r.price) || 0), 0);
+                const text = rows.map(r => r.price ? `${r.item}　$${r.price}` : r.item).join('\n');
+                return { menuTitle: menu.title, text, subtotal };
             }).filter(Boolean);
             if (orders.length === 0) return;
+            const grandTotal = orders.reduce((s, o) => s + o.subtotal, 0);
             await db.collection('orders').add({
                 user: currentUserName,
                 orders,
+                grandTotal,
                 time: new Date().toLocaleTimeString(),
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -407,18 +451,25 @@
             if (allOrders.length === 0) { container.innerHTML = '<p class="text-center py-20 text-gray-400">無紀錄</p>'; return; }
 
             const byMenu = {};
+            const menuTotals = {};
+            let overallTotal = 0;
             allOrders.forEach(o => {
-                const list = o.orders || [];
-                list.forEach(item => {
+                overallTotal += o.grandTotal || 0;
+                (o.orders || []).forEach(item => {
                     const mt = item.menuTitle || '未分類';
                     if (!byMenu[mt]) byMenu[mt] = [];
                     byMenu[mt].push({ user: o.user, text: item.text });
+                    menuTotals[mt] = (menuTotals[mt] || 0) + (item.subtotal || 0);
                 });
             });
 
-            let aggHtml = '<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6 space-y-5">';
+            let aggHtml = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6 space-y-5">`;
             Object.entries(byMenu).forEach(([menuTitle, entries]) => {
-                aggHtml += `<div><div class="text-xs text-blue-400 font-bold mb-3 tracking-widest uppercase">${menuTitle}</div>`;
+                aggHtml += `<div>
+                    <div class="flex justify-between items-baseline mb-3">
+                        <div class="text-xs text-blue-400 font-bold tracking-widest uppercase">${menuTitle}</div>
+                        ${menuTotals[menuTitle] ? `<div class="text-xs text-blue-300 font-bold">小計 NT$${menuTotals[menuTitle]}</div>` : ''}
+                    </div>`;
                 entries.forEach(e => {
                     aggHtml += `<div class="border-b border-white/10 pb-2 mb-2">
                         <span class="text-xs font-bold text-gray-300">${e.user}</span>
@@ -427,6 +478,12 @@
                 });
                 aggHtml += '</div>';
             });
+            if (overallTotal > 0) {
+                aggHtml += `<div class="border-t border-white/20 pt-4 flex justify-between items-center">
+                    <span class="text-sm font-bold text-gray-300">全部總計</span>
+                    <span class="text-xl font-black text-white">NT$ ${overallTotal}</span>
+                </div>`;
+            }
             aggHtml += '</div>';
 
             let ordersHtml = '<div class="space-y-3">';
@@ -434,7 +491,10 @@
                 const list = o.orders || [];
                 ordersHtml += `<div class="bg-gray-50 p-4 rounded-xl border">
                     <div class="flex justify-between items-start mb-2">
-                        <b class="text-gray-800">${o.user}</b>
+                        <div>
+                            <b class="text-gray-800">${o.user}</b>
+                            ${o.grandTotal ? `<span class="ml-2 text-blue-600 font-black">NT$ ${o.grandTotal}</span>` : ''}
+                        </div>
                         <div class="flex items-center gap-2">
                             <span class="text-[10px] text-gray-400">${o.time || ''}</span>
                             <button onclick="deleteOrder('${o._id}')" class="text-xs text-red-400 hover:text-red-600 font-bold">✕ 移除</button>
