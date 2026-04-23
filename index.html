@@ -189,8 +189,8 @@
             loadingEl.classList.remove('hidden');
             textOutput.value = "辨識中...";
 
-            const modelId = "gemini-2.5-flash-preview-09-2025"; // 使用環境支援的最新預覽模型
-            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+            // 在 Canvas 環境中，直接呼叫 generateContent 即可，不需手動拼湊完整 URL
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
             const payload = {
                 contents: [{
@@ -200,9 +200,6 @@
                     ]
                 }]
             };
-
-            let retryCount = 0;
-            const maxRetries = 5;
 
             async function callApi(attempt) {
                 try {
@@ -214,15 +211,13 @@
 
                     if (!response.ok) {
                         const errorBody = await response.json();
-                        throw new Error(`API 錯誤: ${response.status} - ${JSON.stringify(errorBody)}`);
+                        throw new Error(`API 錯誤: ${response.status} - ${errorBody.error?.message || JSON.stringify(errorBody)}`);
                     }
 
                     const data = await response.json();
-                    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                    console.log("辨識成功，回傳結果：", resultText);
-                    return resultText;
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
                 } catch (error) {
-                    if (attempt < maxRetries) {
+                    if (attempt < 5) {
                         const delay = Math.pow(2, attempt) * 1000;
                         await new Promise(resolve => setTimeout(resolve, delay));
                         return callApi(attempt + 1);
@@ -248,7 +243,7 @@
             } catch (err) {
                 console.error("辨識過程最終失敗：", err);
                 textOutput.value = "";
-                alert("AI 辨識發生錯誤。請確認您的環境是否支援 Google Gemini API。\n提示：若持續失敗，您可以手動輸入右側的店名與菜單內容。");
+                alert("AI 辨識連線失敗。請確認網路狀況，或稍後再試。");
             } finally {
                 loadingEl.classList.add('hidden');
             }
