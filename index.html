@@ -189,10 +189,10 @@
             loadingEl.classList.remove('hidden');
             textOutput.value = "";
 
-            // 依序嘗試多個 API 節點以防 404
+            // 調整後的模型路徑，使用 gemini-1.5-flash-latest 較穩定
             const apiEndpoints = [
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-                `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
             ];
 
             const prompt = "您是一位繁體中文菜單分析專家。請解析此圖片並提取店名、品名及價格。格式：第一行輸出 'STORE:店名'，接下來每行輸出 '品名 價格'。不要包含幣值符號，只要純數字。不要輸出任何其他贅字。範例：\nSTORE:好味道餐館\n雞肉飯 45\n貢丸湯 30";
@@ -201,6 +201,8 @@
 
             for (let url of apiEndpoints) {
                 if (success) break;
+                console.log("嘗試請求 API:", url.split('?')[0]); // 紀錄不含 Key 的網址方便除錯
+                
                 try {
                     const response = await fetch(url, {
                         method: 'POST',
@@ -218,13 +220,14 @@
                     if (response.ok) {
                         const data = await response.json();
                         let resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                        console.log("AI 回傳原始文字:", resultText);
                         
                         if (resultText) {
                             const lines = resultText.split('\n');
                             const storeLine = lines.find(l => l.toUpperCase().includes('STORE:'));
                             if (storeLine) {
                                 titleInput.value = storeLine.split(':')[1].trim();
-                                textOutput.value = lines.filter(l => !l.toUpperCase().includes('STORE:')).join('\n').trim();
+                                textOutput.value = lines.filter(l => !l.toUpperCase().includes('STORE:') && l.trim() !== "").join('\n').trim();
                             } else {
                                 textOutput.value = resultText.trim();
                             }
@@ -232,16 +235,16 @@
                         }
                     } else {
                         const errorData = await response.json();
-                        console.error("API Error:", errorData);
+                        console.error("API 詳細錯誤回報:", errorData);
                     }
                 } catch (err) {
-                    console.error("Fetch Error:", err);
+                    console.error("連線過程發生異常:", err);
                 }
             }
 
             loadingEl.classList.add('hidden');
             if (!success) {
-                alert("AI 辨識暫時無法連線。請檢查您的網路環境，或手動輸入菜單內容。");
+                alert("辨識失敗！請確認 API Key 是否有效，或檢查網路環境。建議可手動於右側輸入店名與菜單內容。");
             }
         }
 
@@ -257,7 +260,9 @@
             const items = rawText.split('\n').map(line => {
                 const parts = line.trim().split(/\s+/);
                 if (parts.length < 2) return null;
-                const price = parseInt(parts.pop().replace(/[^0-9]/g, "")) || 0;
+                // 提取最後一個空格後的數字作為價格
+                const priceStr = parts.pop().replace(/[^0-9]/g, "");
+                const price = parseInt(priceStr) || 0;
                 return { name: parts.join(" "), price };
             }).filter(i => i !== null);
 
