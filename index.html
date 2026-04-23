@@ -399,6 +399,7 @@
         function orderRowHTML() {
             return `<div class="flex gap-2 items-center">
                 <input type="text" placeholder="品項名稱" oninput="updateCartUI()" class="flex-1 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none">
+                <input type="number" value="1" min="1" oninput="updateCartUI()" class="w-12 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none text-center">
                 <input type="text" placeholder="金額" oninput="updateCartUI()" class="w-20 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none text-center">
                 <button onclick="removeOrderRow(this)" class="w-7 h-7 flex-shrink-0 text-gray-200 hover:text-red-400 text-xl leading-none">×</button>
             </div>`;
@@ -478,6 +479,7 @@
                         <div class="md:w-1/2 p-5 flex flex-col">
                             <div class="flex gap-2 text-xs font-bold text-gray-400 mb-2 px-1">
                                 <span class="flex-1">品項</span>
+                                <span class="w-12 text-center">數量</span>
                                 <span class="w-20 text-center">金額</span>
                                 <span class="w-7"></span>
                             </div>
@@ -514,11 +516,16 @@
                 if (!container) return null;
                 const rows = Array.from(container.children).map(row => {
                     const inputs = row.querySelectorAll('input');
-                    return { item: inputs[0]?.value.trim() || '', price: inputs[1]?.value.trim() || '' };
+                    return { item: inputs[0]?.value.trim() || '', qty: parseInt(inputs[1]?.value) || 1, price: inputs[2]?.value.trim() || '' };
                 }).filter(r => r.item);
                 if (rows.length === 0) return null;
-                const subtotal = rows.reduce((s, r) => s + (parseInt(r.price) || 0), 0);
-                const text = rows.map(r => r.price ? `${r.item}　$${r.price}` : r.item).join('\n');
+                const subtotal = rows.reduce((s, r) => s + (parseInt(r.price) || 0) * r.qty, 0);
+                const text = rows.map(r => {
+                    let line = r.item;
+                    if (r.qty > 1) line += ` x${r.qty}`;
+                    if (r.price) line += `　$${r.price}`;
+                    return line;
+                }).join('\n');
                 return { menuTitle: menu.title, text, subtotal };
             }).filter(Boolean);
             if (orders.length === 0) return;
