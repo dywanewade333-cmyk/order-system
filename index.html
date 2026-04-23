@@ -148,6 +148,19 @@
         </div>
     </div>
 
+    <!-- Clear Confirm Modal -->
+    <div id="clear-modal" class="hidden fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-xs w-full text-center">
+            <div class="text-5xl mb-4">🗑️</div>
+            <h3 class="text-lg font-black text-gray-800 mb-2">要確定清除喔！？</h3>
+            <p class="text-sm text-gray-400 mb-6">所有訂單紀錄將被永久刪除</p>
+            <div class="flex gap-3">
+                <button onclick="closeClearModal()" class="flex-1 py-3 rounded-xl font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">取消</button>
+                <button onclick="confirmClearOrders()" class="flex-1 py-3 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 transition-colors">確定清除</button>
+            </div>
+        </div>
+    </div>
+
     <div id="image-modal" class="hidden fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-4" onclick="closeImageModal()">
         <img id="modal-img" class="max-w-full max-h-full rounded-xl shadow-2xl object-contain">
     </div>
@@ -646,8 +659,16 @@
             await db.collection('orders').doc(id).delete();
         }
 
-        async function clearOrders() {
-            if (!confirm("確定清空？")) return;
+        function clearOrders() {
+            document.getElementById('clear-modal').classList.remove('hidden');
+        }
+
+        function closeClearModal() {
+            document.getElementById('clear-modal').classList.add('hidden');
+        }
+
+        async function confirmClearOrders() {
+            closeClearModal();
             const snapshot = await db.collection('orders').get();
             const batch = db.batch();
             snapshot.docs.forEach(doc => batch.delete(doc.ref));
