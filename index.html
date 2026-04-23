@@ -174,6 +174,8 @@
         let editingMenuId = null;
         let libFilter = { category: '全部', search: '' };
         let activeMenuTab = null;
+        let summaryTab = null;
+        let summaryMenuTitles = [];
 
         if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
 
@@ -521,6 +523,7 @@
             }).filter(Boolean);
             if (orders.length === 0) return;
             const grandTotal = orders.reduce((s, o) => s + o.subtotal, 0);
+            if (grandTotal > 200 && !confirm('🐷 吃太多會很胖喔～確定要點餐嘛～ 🐷')) return;
             await db.collection('orders').add({
                 user: currentUserName,
                 orders,
@@ -530,6 +533,11 @@
             });
             renderActiveMenu();
             switchView('summary');
+        }
+
+        function setSummaryTab(idx) {
+            summaryTab = summaryMenuTitles[idx];
+            renderSummary();
         }
 
         function renderSummary() {
@@ -549,23 +557,38 @@
                 });
             });
 
-            let aggHtml = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6 space-y-5">`;
-            Object.entries(byMenu).forEach(([menuTitle, entries]) => {
+            summaryMenuTitles = Object.keys(byMenu);
+            if (!summaryTab || !summaryMenuTitles.includes(summaryTab)) summaryTab = summaryMenuTitles[0];
+            const multiMenu = summaryMenuTitles.length > 1;
+
+            let aggHtml = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6">`;
+
+            if (multiMenu) {
+                aggHtml += `<div class="flex gap-2 flex-wrap mb-5">`;
+                summaryMenuTitles.forEach((title, idx) => {
+                    const active = title === summaryTab;
+                    aggHtml += `<button onclick="setSummaryTab(${idx})" class="text-xs font-bold px-3 py-1.5 rounded-full transition-colors ${active ? 'bg-blue-500 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'}">${title}</button>`;
+                });
+                aggHtml += `</div>`;
+            }
+
+            summaryMenuTitles.forEach(menuTitle => {
+                const entries = byMenu[menuTitle];
                 const allLines = [];
                 entries.forEach(e => e.text.split('\n').forEach(line => { if (line.trim()) allLines.push(line.trim()); }));
                 allLines.sort((a, b) => (a[0] || '').localeCompare(b[0] || '', 'zh-TW'));
-                aggHtml += `<div>
-                    <div class="flex justify-between items-baseline mb-3">
-                        <div class="text-xs text-blue-400 font-bold tracking-widest uppercase">${menuTitle}</div>
-                        ${menuTotals[menuTitle] ? `<div class="text-xs text-blue-300 font-bold">小計 NT$${menuTotals[menuTitle]}</div>` : ''}
-                    </div>`;
+                const visible = !multiMenu || menuTitle === summaryTab;
+                aggHtml += `<div class="${visible ? '' : 'hidden'}">`;
+                aggHtml += `<div class="flex justify-between items-baseline mb-3">
+                    <div class="text-xs text-blue-400 font-bold tracking-widest uppercase">${multiMenu ? '' : menuTitle}</div>
+                    ${menuTotals[menuTitle] ? `<div class="text-xs text-blue-300 font-bold">小計 NT$${menuTotals[menuTitle]}</div>` : ''}
+                </div>`;
                 allLines.forEach(line => {
-                    aggHtml += `<div class="border-b border-white/10 pb-2 mb-2">
-                        <div class="text-sm text-white/90">${line}</div>
-                    </div>`;
+                    aggHtml += `<div class="border-b border-white/10 pb-2 mb-2"><div class="text-sm text-white/90">${line}</div></div>`;
                 });
                 aggHtml += '</div>';
             });
+
             if (overallTotal > 0) {
                 aggHtml += `<div class="border-t border-white/20 pt-4 flex justify-between items-center">
                     <span class="text-sm font-bold text-gray-300">全部總計</span>
