@@ -120,8 +120,8 @@
     </div>
 
     <script>
-        // --- 請務必在此填入你的 API Key ---
-        const apiKey = ""; 
+        // --- 已經為你填入 API Key ---
+        const apiKey = "AIzaSyDjFNKIR8bvO_6x4-qnmx2NZnq7kXpbpKE"; 
         
         let menuLibrary = JSON.parse(localStorage.getItem('menuLibrary')) || [];
         let activeMenu = JSON.parse(localStorage.getItem('activeMenu')) || null;
@@ -171,7 +171,7 @@
 
         async function recognizeMenu(base64) {
             if (!apiKey) {
-                alert("錯誤：請先在程式碼第 158 行填入 apiKey。");
+                alert("錯誤：API Key 遺失，請確認程式碼。");
                 return;
             }
 
@@ -179,10 +179,10 @@
             document.getElementById('raw-menu-text').value = ""; // 清空上次結果
             
             try {
-                // 使用更穩定的 1.5 Flash 模型
+                // 使用穩定的 1.5 Flash 模型
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
-                const prompt = "你是一個菜單辨識專家。請從這張圖片中提取所有的「品名」與「價格」。輸出格式必須嚴格遵守：品名 數字。每行一個品項。如果圖片頂部有明顯的店名，請在第一行輸出：STORE:店名。不要說任何贅字。";
+                const prompt = "你是一個菜單辨識專家。請從這張圖片中提取所有的「品名」與「價格」。輸出格式必須嚴格遵守：品名 數字。每行一個品項。如果圖片頂部有明顯的店名，請在第一行輸出：STORE:店名。不要說任何贅字。例如：香滷肉飯 45";
                 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -205,8 +205,8 @@
                 const result = await response.json();
                 let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
                 
-                if (!text) {
-                    alert("辨識失敗：AI 沒有回傳任何文字，請確認照片內容。");
+                if (!text || text.trim() === "") {
+                    alert("辨識失敗：AI 無法辨識此圖片中的文字，請嘗試拍得更清楚。");
                     return;
                 }
 
@@ -223,7 +223,7 @@
                 
             } catch (e) { 
                 console.error("AI Error:", e);
-                alert(`辨識發生錯誤：${e.message}\n請檢查 API Key 是否正確或網路是否通暢。`); 
+                alert(`辨識發生錯誤：${e.message}\n請確認你的 API Key 是否已開通 Gemini API 權限。`); 
             }
             finally { 
                 document.getElementById('ai-loading').classList.add('hidden'); 
@@ -236,14 +236,14 @@
             const rawText = document.getElementById('raw-menu-text').value.trim();
             
             if (!title || !rawText) {
-                alert("請確保已有『菜單名稱』與『品項內容』。若 AI 辨識失敗，可手動輸入。");
+                alert("請確保已有『菜單名稱』與『品項內容』。");
                 return;
             }
 
             const items = rawText.split('\n').map(line => {
                 const parts = line.trim().split(/\s+/);
                 if (parts.length < 2) return null;
-                // 抓取最後一個數字作為價格，移除非數字字元 (如 $ 符號)
+                // 抓取最後一個數字作為價格
                 const priceStr = parts.pop().replace(/[^0-9]/g, "");
                 const price = parseInt(priceStr) || 0;
                 return { name: parts.join(" "), price };
