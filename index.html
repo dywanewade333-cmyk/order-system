@@ -7,83 +7,106 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f1f5f9; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
         .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .menu-card-active { border: 2px solid #3b82f6; background-color: #eff6ff; }
+        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
     </style>
 </head>
 <body class="pb-32">
 
-    <nav class="bg-white shadow-sm sticky top-0 z-50">
+    <!-- 導航欄 -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50 glass-effect">
         <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
             <h1 class="text-xl font-bold text-blue-600 flex items-center">
-                <span class="mr-2">🗃️</span> 豬仔養成計畫
+                <span class="mr-2">🍱</span> 豬仔養成計畫
             </h1>
             <div class="flex space-x-4">
-                <button onclick="switchView('user')" id="btn-user" class="text-sm font-medium tab-active py-1">我要點餐</button>
-                <button onclick="switchView('admin')" id="btn-admin" class="text-sm font-medium text-gray-500 py-1">菜單資料庫</button>
-                <button onclick="switchView('summary')" id="btn-summary" class="text-sm font-medium text-gray-500 py-1">訂單統計</button>
+                <button onclick="switchView('user')" id="btn-user" class="text-sm font-medium tab-active py-1 transition-all">我要點餐</button>
+                <button onclick="switchView('admin')" id="btn-admin" class="text-sm font-medium text-gray-500 py-1 transition-all">菜單資料庫</button>
+                <button onclick="switchView('summary')" id="btn-summary" class="text-sm font-medium text-gray-500 py-1 transition-all">訂單統計</button>
             </div>
         </div>
     </nav>
 
     <main class="max-w-4xl mx-auto p-4">
         
-        <!-- View: User (點餐) -->
-        <section id="view-user" class="block">
-            <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border border-gray-200">
+        <!-- 視圖: 用戶點餐 -->
+        <section id="view-user" class="block space-y-4">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 id="active-menu-name" class="text-xl font-black text-gray-800 italic">尚未載入菜單</h2>
-                    <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold">今日供應中</span>
+                    <h2 id="active-menu-name" class="text-xl font-bold text-gray-800">載入中...</h2>
+                    <span class="text-xs bg-green-100 text-green-600 px-3 py-1 rounded-full font-bold">供應中</span>
                 </div>
-                <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-widest">Your Name</label>
-                <input type="text" id="user-name-input" oninput="saveUserName()" class="w-full p-4 rounded-xl bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-400 outline-none transition-all text-lg font-bold" placeholder="輸入名字開始點餐...">
+                <div class="relative">
+                    <label class="text-[10px] font-bold text-blue-500 absolute -top-2 left-3 bg-white px-1">點餐人姓名</label>
+                    <input type="text" id="user-name-input" oninput="saveUserName()" class="w-full p-4 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-400 outline-none transition-all text-lg font-bold" placeholder="請輸入您的名字...">
+                </div>
             </div>
-            <div id="menu-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
+            <div id="menu-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <!-- 菜單品項將在此生成 -->
+            </div>
         </section>
 
-        <!-- View: Admin (資料庫管理) -->
-        <section id="view-admin" class="hidden">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6">
-                <h2 class="text-lg font-bold mb-4 flex items-center"><span class="mr-2">➕</span> 新增菜單到資料庫</h2>
+        <!-- 視圖: 資料庫管理 -->
+        <section id="view-admin" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-bold mb-4 flex items-center text-gray-700">
+                    <span class="bg-blue-100 p-1 rounded mr-2">📸</span> AI 辨識新菜單
+                </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:bg-gray-50 transition-colors relative">
+                    <!-- 上傳區 -->
+                    <div class="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center hover:bg-gray-50 transition-colors relative group">
                         <input type="file" id="menu-image" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
-                        <label for="menu-image" class="cursor-pointer block py-8">
+                        <label for="menu-image" class="cursor-pointer block py-10">
                             <div id="upload-placeholder">
-                                <div class="text-4xl mb-2">📸</div>
-                                <p class="text-sm font-bold text-blue-600">拍照辨識菜單</p>
+                                <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">🖼️</div>
+                                <p class="text-sm font-bold text-blue-600">選擇或拍攝菜單照片</p>
+                                <p class="text-xs text-gray-400 mt-1">AI 會自動提取品名與價格</p>
                             </div>
-                            <img id="image-preview" class="hidden max-h-48 mx-auto rounded shadow-sm">
+                            <img id="image-preview" class="hidden max-h-64 mx-auto rounded-lg shadow-lg">
                         </label>
-                        <div id="ai-loading" class="hidden absolute inset-0 bg-white/90 flex flex-col items-center justify-center rounded-xl z-10">
-                            <div class="loader mb-2"></div>
-                            <span class="text-xs font-bold text-blue-600 font-sans">AI 正在努力閱讀菜單中...</span>
+                        <!-- AI 載入動畫 -->
+                        <div id="ai-loading" class="hidden absolute inset-0 bg-white/95 flex flex-col items-center justify-center rounded-2xl z-10">
+                            <div class="loader mb-4"></div>
+                            <span class="text-sm font-bold text-blue-600">Gemini AI 正在解析圖片...</span>
+                            <p class="text-[10px] text-gray-400 mt-2">這通常需要 3-5 秒</p>
                         </div>
                     </div>
-                    <div class="flex flex-col">
-                        <label class="text-xs font-bold text-gray-400 mb-1">菜單名稱</label>
-                        <input type="text" id="new-menu-title" class="w-full p-2 border-b mb-4 outline-none focus:border-blue-500 font-bold text-lg" placeholder="店名">
-                        <label class="text-xs font-bold text-gray-400 mb-1">辨識結果 (品名 價格)</label>
-                        <textarea id="raw-menu-text" class="flex-grow w-full h-48 p-3 bg-gray-50 rounded-lg text-xs font-mono outline-none focus:bg-white border border-transparent focus:border-blue-200" placeholder="品項 價格..."></textarea>
-                        <button onclick="saveToDatabase()" class="mt-4 bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center">
-                            <span class="mr-2">💾</span> 儲存到我的資料庫
+                    <!-- 編輯區 -->
+                    <div class="flex flex-col space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 mb-1 block uppercase">店鋪名稱</label>
+                            <input type="text" id="new-menu-title" class="w-full p-3 bg-gray-50 border-b-2 border-transparent focus:border-blue-500 outline-none transition-all font-bold text-xl" placeholder="例如：泰老饕">
+                        </div>
+                        <div class="flex-grow">
+                            <label class="text-xs font-bold text-gray-400 mb-1 block uppercase">辨識結果 (品名 價格)</label>
+                            <textarea id="raw-menu-text" class="w-full h-48 p-4 bg-gray-50 rounded-xl text-sm font-mono leading-relaxed outline-none focus:bg-white border border-transparent focus:border-blue-100 transition-all" placeholder="滷肉飯 35&#10;乾麵 40..."></textarea>
+                        </div>
+                        <button onclick="saveToDatabase()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center">
+                            <span class="mr-2">💾</span> 儲存到菜單庫
                         </button>
                     </div>
                 </div>
             </div>
-            <h2 class="text-lg font-bold mb-4 flex items-center px-2 text-gray-700"><span class="mr-2">📁</span> 我的菜單資料庫</h2>
-            <div id="database-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+
+            <!-- 資料庫列表 -->
+            <div class="px-2">
+                <h2 class="text-lg font-bold mb-4 flex items-center text-gray-700">
+                    <span class="bg-amber-100 p-1 rounded mr-2">📁</span> 我的菜單庫
+                </h2>
+                <div id="database-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+            </div>
         </section>
 
-        <!-- View: Summary (統計) -->
+        <!-- 視圖: 訂單統計 -->
         <section id="view-summary" class="hidden">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-black italic">ORDERS SUMMARY</h2>
-                    <button onclick="clearOrders()" class="text-xs font-bold text-red-500 bg-red-50 px-3 py-1 rounded-full">清空紀錄</button>
+                    <h2 class="text-xl font-bold text-gray-800">訂單匯總紀錄</h2>
+                    <button onclick="clearOrders()" class="text-xs font-bold text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl transition-colors">清空數據</button>
                 </div>
                 <div id="order-summary-content"></div>
             </div>
@@ -91,20 +114,25 @@
 
     </main>
 
-    <div id="cart-bar" class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 px-6 py-4 shadow-2xl z-50">
+    <!-- 底部購物車欄 -->
+    <div id="cart-bar" class="fixed bottom-0 left-0 right-0 glass-effect border-t border-gray-100 px-6 py-5 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <div>
-                <p class="text-[10px] text-gray-400 font-black uppercase">Current Total</p>
-                <p class="text-2xl font-black text-blue-600">NT$ <span id="cart-total">0</span></p>
+            <div class="flex items-center">
+                <div class="bg-blue-50 p-3 rounded-xl mr-4 text-2xl">🛒</div>
+                <div>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">合計金額</p>
+                    <p class="text-2xl font-black text-blue-600">NT$ <span id="cart-total">0</span></p>
+                </div>
             </div>
-            <button id="submit-btn" onclick="submitOrder()" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-200 disabled:bg-gray-200 disabled:text-gray-400 transition-all active:scale-95">
-                送出點餐
+            <button id="submit-btn" onclick="submitOrder()" class="bg-blue-600 text-white px-12 py-4 rounded-2xl font-bold shadow-xl shadow-blue-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none transition-all active:scale-95">
+                送出訂單
             </button>
         </div>
     </div>
 
     <script>
-        const apiKey = "AIzaSyDjFNKIR8bvO_6x4-qnmx2NZnq7kXpbpKE"; 
+        // 配置
+        const apiKey = "AIzaSyDjFNKIR8bvO_6x4-qnmx2NZnq7kXpbpKE";
         
         let menuLibrary = JSON.parse(localStorage.getItem('menuLibrary')) || [];
         let activeMenu = JSON.parse(localStorage.getItem('activeMenu')) || null;
@@ -135,12 +163,13 @@
             document.getElementById(`btn-${view}`).classList.add('tab-active', 'text-blue-600');
             document.getElementById('cart-bar').style.display = (view === 'user') ? 'flex' : 'none';
             if (view === 'summary') renderSummary();
-            if (view === 'admin') renderLibrary();
         }
 
         async function handleImageUpload(input) {
             const file = input.files[0];
             if (!file) return;
+            
+            // 預覽圖片
             const reader = new FileReader();
             reader.onload = (e) => {
                 document.getElementById('image-preview').src = e.target.result;
@@ -151,97 +180,135 @@
             reader.readAsDataURL(file);
         }
 
+        // 核心：穩定的 AI 辨識邏輯
         async function recognizeMenu(base64) {
-            document.getElementById('ai-loading').classList.remove('hidden');
-            document.getElementById('raw-menu-text').value = "";
+            const loadingEl = document.getElementById('ai-loading');
+            const textOutput = document.getElementById('raw-menu-text');
+            const titleInput = document.getElementById('new-menu-title');
             
-            // 嘗試不同的模型路徑以避開 404
-            const urls = [
+            loadingEl.classList.remove('hidden');
+            textOutput.value = "";
+
+            // 依序嘗試多個 API 節點以防 404
+            const apiEndpoints = [
                 `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
                 `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`
             ];
 
-            const prompt = "你是一個菜單辨識專家。請從這張圖片中提取所有的「品名」與「價格」。輸出格式必須嚴格遵守：品名 數字。每行一個品項。如果圖片頂部有明顯的店名，請在第一行輸出：STORE:店名。不要說任何贅字。範例：滷肉飯 35";
+            const prompt = "您是一位繁體中文菜單分析專家。請解析此圖片並提取店名、品名及價格。格式：第一行輸出 'STORE:店名'，接下來每行輸出 '品名 價格'。不要包含幣值符號，只要純數字。不要輸出任何其他贅字。範例：\nSTORE:好味道餐館\n雞肉飯 45\n貢丸湯 30";
 
-            for (let url of urls) {
+            let success = false;
+
+            for (let url of apiEndpoints) {
+                if (success) break;
                 try {
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            contents: [{ 
+                            contents: [{
                                 parts: [
-                                    { text: prompt }, 
+                                    { text: prompt },
                                     { inlineData: { mimeType: "image/png", data: base64 } }
-                                ] 
+                                ]
                             }]
                         })
                     });
 
                     if (response.ok) {
-                        const result = await response.json();
-                        let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                        if (text) {
-                            if (text.includes("STORE:")) {
-                                const lines = text.split('\n');
-                                const storeLine = lines.find(l => l.includes("STORE:"));
-                                document.getElementById('new-menu-title').value = storeLine.replace("STORE:", "").trim();
-                                text = lines.filter(l => !l.includes("STORE:")).join('\n').trim();
+                        const data = await response.json();
+                        let resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                        
+                        if (resultText) {
+                            const lines = resultText.split('\n');
+                            const storeLine = lines.find(l => l.toUpperCase().includes('STORE:'));
+                            if (storeLine) {
+                                titleInput.value = storeLine.split(':')[1].trim();
+                                textOutput.value = lines.filter(l => !l.toUpperCase().includes('STORE:')).join('\n').trim();
+                            } else {
+                                textOutput.value = resultText.trim();
                             }
-                            document.getElementById('raw-menu-text').value = text;
-                            document.getElementById('ai-loading').classList.add('hidden');
-                            return; // 成功後直接跳出
+                            success = true;
                         }
+                    } else {
+                        const errorData = await response.json();
+                        console.error("API Error:", errorData);
                     }
-                } catch (e) {
-                    console.warn(`嘗試 URL ${url} 失敗`, e);
+                } catch (err) {
+                    console.error("Fetch Error:", err);
                 }
             }
-            
-            document.getElementById('ai-loading').classList.add('hidden');
-            alert("辨識失敗。這可能是因為 API 金鑰限制或圖片不清楚。請嘗試手動輸入或檢查 Google AI 控制台權限。");
+
+            loadingEl.classList.add('hidden');
+            if (!success) {
+                alert("AI 辨識暫時無法連線。請檢查您的網路環境，或手動輸入菜單內容。");
+            }
         }
 
         function saveToDatabase() {
             const title = document.getElementById('new-menu-title').value.trim();
             const rawText = document.getElementById('raw-menu-text').value.trim();
-            if (!title || !rawText) { alert("請確保已有店名與辨識結果。"); return; }
+            
+            if (!title || !rawText) {
+                alert("請輸入店名與菜單內容！");
+                return;
+            }
 
             const items = rawText.split('\n').map(line => {
                 const parts = line.trim().split(/\s+/);
                 if (parts.length < 2) return null;
                 const price = parseInt(parts.pop().replace(/[^0-9]/g, "")) || 0;
                 return { name: parts.join(" "), price };
-            }).filter(i => i && i.name);
+            }).filter(i => i !== null);
 
-            if (items.length === 0) { alert("格式解析失敗，請手動校正品名後方需有價格。"); return; }
+            if (items.length === 0) {
+                alert("菜單格式解析失敗。請確保每行格式為：[品名][空格][價格]");
+                return;
+            }
 
-            menuLibrary.push({ id: Date.now(), title, items });
+            const newMenu = { id: Date.now(), title, items };
+            menuLibrary.unshift(newMenu);
             localStorage.setItem('menuLibrary', JSON.stringify(menuLibrary));
+            
+            // 重置輸入
+            document.getElementById('new-menu-title').value = "";
+            document.getElementById('raw-menu-text').value = "";
+            document.getElementById('image-preview').classList.add('hidden');
+            document.getElementById('upload-placeholder').classList.remove('hidden');
+            
             renderLibrary();
-            alert("儲存成功！");
+            alert("菜單已成功加入資料庫！");
         }
 
         function renderLibrary() {
             const list = document.getElementById('database-list');
-            list.innerHTML = menuLibrary.length ? '' : `<div class="col-span-full py-10 text-center text-gray-400">資料庫是空的</div>`;
+            list.innerHTML = '';
+            
+            if (menuLibrary.length === 0) {
+                list.innerHTML = '<div class="col-span-full py-12 text-center text-gray-400">目前還沒有收藏任何菜單</div>';
+                return;
+            }
+
             menuLibrary.forEach(menu => {
                 const isActive = activeMenu && activeMenu.id === menu.id;
-                const card = document.createElement('div');
-                card.className = `bg-white p-4 rounded-xl border transition-all ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-gray-800">${menu.title}</h3>
-                        <span class="text-[10px] text-gray-400">${menu.items.length} 品項</span>
+                const div = document.createElement('div');
+                div.className = `bg-white p-5 rounded-2xl border-2 transition-all ${isActive ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-100 hover:border-gray-200'}`;
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-800">${menu.title}</h3>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase">${menu.items.length} 個品項</p>
+                        </div>
+                        ${isActive ? '<span class="text-[10px] bg-blue-500 text-white px-2 py-1 rounded-md font-bold">使用中</span>' : ''}
                     </div>
                     <div class="flex space-x-2">
-                        <button onclick="setActiveMenu(${menu.id})" class="flex-1 text-xs py-2 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
-                            ${isActive ? '使用中' : '啟用'}
+                        <button onclick="setActiveMenu(${menu.id})" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all ${isActive ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">
+                            ${isActive ? '點餐中' : '啟用這份菜單'}
                         </button>
-                        <button onclick="deleteFromLibrary(${menu.id})" class="p-2 text-red-300">🗑️</button>
+                        <button onclick="deleteMenu(${menu.id})" class="bg-red-50 text-red-400 p-2 rounded-xl hover:bg-red-100 transition-colors">🗑️</button>
                     </div>
                 `;
-                list.appendChild(card);
+                list.appendChild(div);
             });
         }
 
@@ -254,11 +321,11 @@
             switchView('user');
         }
 
-        function deleteFromLibrary(id) {
-            if (!confirm("確定刪除？")) return;
+        function deleteMenu(id) {
+            if (!confirm("確定要從資料庫移除這份菜單嗎？")) return;
             menuLibrary = menuLibrary.filter(m => m.id !== id);
             localStorage.setItem('menuLibrary', JSON.stringify(menuLibrary));
-            if (activeMenu?.id === id) {
+            if (activeMenu && activeMenu.id === id) {
                 activeMenu = null;
                 localStorage.removeItem('activeMenu');
             }
@@ -270,21 +337,26 @@
             const container = document.getElementById('menu-container');
             const titleDisplay = document.getElementById('active-menu-name');
             container.innerHTML = '';
+
             if (!activeMenu) {
                 titleDisplay.innerText = "尚未選擇菜單";
-                container.innerHTML = `<div class="col-span-full py-20 text-center text-gray-400">請到菜單資料庫啟用一份菜單。</div>`;
+                container.innerHTML = '<div class="col-span-full py-24 text-center text-gray-400">請前往「菜單資料庫」啟用一份菜單開始點餐</div>';
                 return;
             }
+
             titleDisplay.innerText = activeMenu.title;
             activeMenu.items.forEach((item, idx) => {
                 const card = document.createElement('div');
-                card.className = "bg-white p-4 rounded-xl border border-gray-100 flex flex-col justify-between";
+                card.className = "bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow";
                 card.innerHTML = `
-                    <div><h4 class="font-bold text-gray-800 text-sm mb-1 line-clamp-2">${item.name}</h4><p class="text-blue-600 font-black mb-3">$${item.price}</p></div>
-                    <div class="flex items-center justify-between bg-gray-50 rounded-lg p-1">
-                        <button onclick="addToCart(${idx}, -1)" class="w-8 h-8">-</button>
-                        <span class="text-sm font-bold" id="qty-${idx}">${cart[idx] || 0}</span>
-                        <button onclick="addToCart(${idx}, 1)" class="w-8 h-8 bg-white rounded shadow-sm text-blue-600">+</button>
+                    <div class="mb-3">
+                        <h4 class="font-bold text-gray-800 text-sm mb-1">${item.name}</h4>
+                        <p class="text-blue-600 font-black">$${item.price}</p>
+                    </div>
+                    <div class="flex items-center justify-between bg-gray-50 rounded-xl p-1">
+                        <button onclick="updateCart(${idx}, -1)" class="w-10 h-10 flex items-center justify-center font-bold text-gray-400 hover:text-red-500">-</button>
+                        <span class="text-sm font-black" id="qty-${idx}">${cart[idx] || 0}</span>
+                        <button onclick="updateCart(${idx}, 1)" class="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm text-blue-600 font-bold">+</button>
                     </div>
                 `;
                 container.appendChild(card);
@@ -292,31 +364,55 @@
             updateCartUI();
         }
 
-        function addToCart(idx, change) {
-            cart[idx] = (cart[idx] || 0) + change;
+        function updateCart(idx, delta) {
+            cart[idx] = (cart[idx] || 0) + delta;
             if (cart[idx] <= 0) delete cart[idx];
-            document.getElementById(`qty-${idx}`).innerText = cart[idx] || 0;
+            
+            const qtyEl = document.getElementById(`qty-${idx}`);
+            if (qtyEl) qtyEl.innerText = cart[idx] || 0;
             updateCartUI();
         }
 
         function updateCartUI() {
-            let total = 0, count = 0;
+            let total = 0;
+            let count = 0;
             if (activeMenu) {
                 Object.entries(cart).forEach(([idx, qty]) => {
                     total += activeMenu.items[idx].price * qty;
                     count += qty;
                 });
             }
-            document.getElementById('cart-total').innerText = total;
+            document.getElementById('cart-total').innerText = total.toLocaleString();
             const btn = document.getElementById('submit-btn');
-            btn.disabled = !(currentUserName && count > 0);
-            btn.innerText = !currentUserName ? "請輸入名字" : (count > 0 ? "確認送出點餐" : "請選擇餐點");
+            
+            const isReady = currentUserName && count > 0;
+            btn.disabled = !isReady;
+            
+            if (!currentUserName) btn.innerText = "請輸入名字";
+            else if (count === 0) btn.innerText = "請選擇餐點";
+            else btn.innerText = `確認送出 (${count} 份)`;
         }
 
         function submitOrder() {
-            const items = Object.entries(cart).map(([idx, qty]) => ({ name: activeMenu.items[idx].name, price: activeMenu.items[idx].price, qty }));
-            allOrders.unshift({ user: currentUserName, shop: activeMenu.title, items, total: document.getElementById('cart-total').innerText, time: new Date().toLocaleTimeString() });
+            if (!activeMenu) return;
+            const items = Object.entries(cart).map(([idx, qty]) => ({
+                name: activeMenu.items[idx].name,
+                price: activeMenu.items[idx].price,
+                qty: qty
+            }));
+
+            const order = {
+                user: currentUserName,
+                shop: activeMenu.title,
+                items: items,
+                total: document.getElementById('cart-total').innerText,
+                time: new Date().toLocaleString('zh-TW', { hour12: false })
+            };
+
+            allOrders.unshift(order);
             localStorage.setItem('allOrders', JSON.stringify(allOrders));
+            
+            // 重置
             cart = {};
             renderActiveMenu();
             switchView('summary');
@@ -324,15 +420,60 @@
 
         function renderSummary() {
             const container = document.getElementById('order-summary-content');
-            if (allOrders.length === 0) { container.innerHTML = '<p class="text-center py-20 text-gray-400">無紀錄</p>'; return; }
-            const aggregate = {};
-            allOrders.forEach(o => o.items.forEach(i => aggregate[i.name] = (aggregate[i.name] || 0) + i.qty));
-            let html = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6">${Object.entries(aggregate).map(([name, qty]) => `<div class="flex justify-between border-b border-white/10 pb-1 mb-1"><span>${name}</span><span class="font-bold">x${qty}</span></div>`).join('')}</div><div class="space-y-4">`;
-            allOrders.forEach(o => { html += `<div class="bg-gray-50 p-4 rounded-xl border"><b>${o.user}</b> <span class="text-blue-600">$${o.total}</span><div class="text-xs text-gray-500">${o.items.map(i => `${i.name}x${i.qty}`).join(', ')}</div></div>`; });
+            if (allOrders.length === 0) {
+                container.innerHTML = '<div class="py-20 text-center text-gray-400 font-medium">目前還沒有點餐紀錄</div>';
+                return;
+            }
+
+            // 統計各品項總數
+            const summary = {};
+            allOrders.forEach(order => {
+                order.items.forEach(item => {
+                    summary[item.name] = (summary[item.name] || 0) + item.qty;
+                });
+            });
+
+            let html = `
+                <div class="bg-gray-900 text-white p-6 rounded-2xl mb-8 shadow-xl">
+                    <h3 class="text-xs font-bold text-gray-400 mb-4 uppercase tracking-widest">今日總計清單</h3>
+                    <div class="space-y-2">
+                        ${Object.entries(summary).map(([name, qty]) => `
+                            <div class="flex justify-between items-center border-b border-white/10 pb-2">
+                                <span class="text-gray-200">${name}</span>
+                                <span class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-lg font-bold">x ${qty}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">詳細訂單紀錄</h3>
+            `;
+
+            allOrders.forEach(o => {
+                html += `
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-bold text-gray-800 text-lg">${o.user}</span>
+                            <span class="text-xs text-gray-400">${o.time}</span>
+                        </div>
+                        <div class="text-sm text-gray-500 mb-2">
+                            ${o.items.map(i => `${i.name} x${i.qty}`).join(', ')}
+                        </div>
+                        <div class="text-right font-black text-blue-600">NT$ ${o.total}</div>
+                    </div>
+                `;
+            });
+
             container.innerHTML = html + "</div>";
         }
 
-        function clearOrders() { if (confirm("確定清空？")) { allOrders = []; localStorage.setItem('allOrders', JSON.stringify(allOrders)); renderSummary(); } }
+        function clearOrders() {
+            if (confirm("這會刪除所有統計紀錄，確定嗎？")) {
+                allOrders = [];
+                localStorage.setItem('allOrders', JSON.stringify(allOrders));
+                renderSummary();
+            }
+        }
     </script>
 </body>
 </html>
