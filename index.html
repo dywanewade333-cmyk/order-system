@@ -33,6 +33,7 @@
         html.dark input::placeholder, html.dark textarea::placeholder { color: #475569 !important; }
         html.dark .menu-card-active { background-color: #1e3a5f !important; }
         html.dark .hover\:bg-gray-50:hover { background-color: #253146 !important; }
+        .order-row-grid { display: grid; grid-template-columns: 1fr 3rem 4rem 5rem 1.75rem; gap: 0.5rem; align-items: center; }
     </style>
 </head>
 <body class="pb-6">
@@ -410,12 +411,12 @@
         }
 
         function orderRowHTML() {
-            return `<div class="flex gap-2 items-center">
-                <input type="text" placeholder="品項名稱" oninput="updateCartUI()" class="flex-1 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none">
-                <input type="number" value="1" min="1" oninput="updateCartUI()" class="w-12 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none text-center">
-                <input type="text" placeholder="金額" oninput="updateCartUI()" class="w-16 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none text-center">
-                <input type="text" placeholder="備註" class="w-20 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-yellow-300 outline-none">
-                <button onclick="removeOrderRow(this)" class="w-7 h-7 flex-shrink-0 text-gray-200 hover:text-red-400 text-xl leading-none">×</button>
+            return `<div class="order-row-grid">
+                <input type="text" placeholder="品項名稱" oninput="updateCartUI()" class="min-w-0 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none">
+                <input type="number" value="1" min="1" oninput="updateCartUI()" class="min-w-0 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none text-center">
+                <input type="text" placeholder="金額" oninput="updateCartUI()" class="min-w-0 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-blue-300 outline-none text-center">
+                <input type="text" placeholder="備註" class="min-w-0 p-2 text-sm bg-gray-50 rounded-lg border border-gray-100 focus:border-yellow-300 outline-none">
+                <button onclick="removeOrderRow(this)" class="flex-shrink-0 text-gray-200 hover:text-red-400 text-xl leading-none text-center">×</button>
             </div>`;
         }
 
@@ -491,12 +492,12 @@
                             ${menu.imageData ? `<button onclick="viewMenuImage(activeMenus.find(m=>m.id===${menu.id}).imageData)" class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-xs px-2 py-1 rounded-full font-bold text-gray-600 shadow-sm">🔍 放大</button>` : ''}
                         </div>
                         <div class="md:w-1/2 p-5 flex flex-col">
-                            <div class="flex gap-2 text-xs font-bold text-gray-400 mb-2">
-                                <span class="flex-1 pl-2">品項</span>
-                                <span class="w-12 text-center">數量</span>
-                                <span class="w-16 text-center">金額</span>
-                                <span class="w-20 text-center">備註</span>
-                                <span class="w-7"></span>
+                            <div class="order-row-grid text-xs font-bold text-gray-400 mb-2">
+                                <span class="pl-1">品項</span>
+                                <span class="text-center">數量</span>
+                                <span class="text-center">金額</span>
+                                <span class="text-center">備註</span>
+                                <span></span>
                             </div>
                             <div id="order-rows-${menu.id}" class="space-y-2">
                                 ${orderRowHTML()}
