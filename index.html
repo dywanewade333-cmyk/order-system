@@ -158,8 +158,10 @@
 
             const urls = [
                 `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`
             ];
+            let rateLimited = false;
 
             const prompt = "你是一個菜單辨識專家。請從這張圖片中提取所有的「品名」與「價格」。輸出格式必須嚴格遵守：品名 數字。每行一個品項。如果圖片頂部有明顯的店名，請在第一行輸出：STORE:店名。不要說任何贅字。範例：滷肉飯 35";
 
@@ -180,7 +182,8 @@
 
                     if (!response.ok) {
                         const err = await response.json().catch(() => ({}));
-                        console.warn(`API 錯誤 (${url}):`, err);
+                        if (response.status === 429) rateLimited = true;
+                        console.warn(`API 錯誤 ${response.status} (${url}):`, err);
                         continue;
                     }
                     const result = await response.json();
@@ -202,7 +205,11 @@
             }
             
             document.getElementById('ai-loading').classList.add('hidden');
-            alert("辨識失敗。這可能是因為 API 金鑰限制或圖片不清楚。請嘗試手動輸入或檢查 Google AI 控制台權限。");
+            if (rateLimited) {
+                alert("API 請求次數已達上限（免費額度用完）。\n請稍等 1 分鐘後再試，或到 Google AI Studio 確認配額。");
+            } else {
+                alert("辨識失敗。請確認 API 金鑰是否正確，或嘗試換一張更清晰的圖片。");
+            }
         }
 
         function saveToDatabase() {
