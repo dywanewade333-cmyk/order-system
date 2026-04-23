@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>點餐系統</title>
+    <title>點餐大管家</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
@@ -72,7 +72,7 @@
                         <div id="ai-loading" class="hidden absolute inset-0 bg-white/95 flex flex-col items-center justify-center rounded-2xl z-10">
                             <div class="loader mb-4"></div>
                             <span class="text-sm font-bold text-blue-600">Gemini AI 正在解析圖片...</span>
-                            <p class="text-[10px] text-gray-400 mt-2">這通常需要 3-5 秒</p>
+                            <p class="text-[10px] text-gray-400 mt-2">這通常需要 3-8 秒</p>
                         </div>
                     </div>
                     <!-- 編輯區 -->
@@ -132,7 +132,7 @@
 
     <script>
         // 配置
-        const apiKey = "AIzaSyDjFNKIR8bvO_6x4-qnmx2NZnq7kXpbpKE";
+        const apiKey = ""; // Canvas 環境中自動提供 Key，設定為空字串
         
         let menuLibrary = JSON.parse(localStorage.getItem('menuLibrary')) || [];
         let activeMenu = JSON.parse(localStorage.getItem('activeMenu')) || null;
@@ -169,82 +169,88 @@
             const file = input.files[0];
             if (!file) return;
             
-            // 預覽圖片
             const reader = new FileReader();
             reader.onload = (e) => {
                 document.getElementById('image-preview').src = e.target.result;
                 document.getElementById('image-preview').classList.remove('hidden');
                 document.getElementById('upload-placeholder').classList.add('hidden');
+                // 傳遞 Base64 數據（去掉 Data URL 前綴）
                 recognizeMenu(e.target.result.split(',')[1]);
             };
             reader.readAsDataURL(file);
         }
 
-        // 核心：穩定的 AI 辨識邏輯
-        async function recognizeMenu(base64) {
+        // 核心：修正後的 AI 辨識邏輯，符合 Canvas 環境規範
+        async function recognizeMenu(base64Data) {
             const loadingEl = document.getElementById('ai-loading');
             const textOutput = document.getElementById('raw-menu-text');
             const titleInput = document.getElementById('new-menu-title');
             
             loadingEl.classList.remove('hidden');
-            textOutput.value = "";
+            textOutput.value = "辨識中...";
 
-            // 調整後的模型路徑，使用 gemini-1.5-flash-latest 較穩定
-            const apiEndpoints = [
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
-            ];
+            const modelId = "gemini-2.5-flash-preview-09-2025"; // 使用環境支援的最新預覽模型
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
 
-            const prompt = "您是一位繁體中文菜單分析專家。請解析此圖片並提取店名、品名及價格。格式：第一行輸出 'STORE:店名'，接下來每行輸出 '品名 價格'。不要包含幣值符號，只要純數字。不要輸出任何其他贅字。範例：\nSTORE:好味道餐館\n雞肉飯 45\n貢丸湯 30";
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: "你是一個專業的繁體中文菜單分析師。請分析這張圖片並提取店名、品名及價格。請嚴格遵守以下格式：\n第一行輸出：'STORE:店名'\n其餘每行：'品名 價格'\n請直接輸出結果，不要有任何開場白或說明文字。範例：\nSTORE:美味餐飲\n紅燒牛肉麵 150\n滷蛋 15" },
+                        { inlineData: { mimeType: "image/png", data: base64Data } }
+                    ]
+                }]
+            };
 
-            let success = false;
+            let retryCount = 0;
+            const maxRetries = 5;
 
-            for (let url of apiEndpoints) {
-                if (success) break;
-                console.log("嘗試請求 API:", url.split('?')[0]); // 紀錄不含 Key 的網址方便除錯
-                
+            async function callApi(attempt) {
                 try {
-                    const response = await fetch(url, {
+                    const response = await fetch(endpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [
-                                    { text: prompt },
-                                    { inlineData: { mimeType: "image/png", data: base64 } }
-                                ]
-                            }]
-                        })
+                        body: JSON.stringify(payload)
                     });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        let resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                        console.log("AI 回傳原始文字:", resultText);
-                        
-                        if (resultText) {
-                            const lines = resultText.split('\n');
-                            const storeLine = lines.find(l => l.toUpperCase().includes('STORE:'));
-                            if (storeLine) {
-                                titleInput.value = storeLine.split(':')[1].trim();
-                                textOutput.value = lines.filter(l => !l.toUpperCase().includes('STORE:') && l.trim() !== "").join('\n').trim();
-                            } else {
-                                textOutput.value = resultText.trim();
-                            }
-                            success = true;
-                        }
-                    } else {
-                        const errorData = await response.json();
-                        console.error("API 詳細錯誤回報:", errorData);
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`API 錯誤: ${response.status} - ${JSON.stringify(errorBody)}`);
                     }
-                } catch (err) {
-                    console.error("連線過程發生異常:", err);
+
+                    const data = await response.json();
+                    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                    console.log("辨識成功，回傳結果：", resultText);
+                    return resultText;
+                } catch (error) {
+                    if (attempt < maxRetries) {
+                        const delay = Math.pow(2, attempt) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return callApi(attempt + 1);
+                    }
+                    throw error;
                 }
             }
 
-            loadingEl.classList.add('hidden');
-            if (!success) {
-                alert("辨識失敗！請確認 API Key 是否有效，或檢查網路環境。建議可手動於右側輸入店名與菜單內容。");
+            try {
+                const finalResult = await callApi(0);
+                
+                if (finalResult) {
+                    const lines = finalResult.split('\n').filter(l => l.trim() !== "");
+                    const storeLine = lines.find(l => l.includes('STORE:'));
+                    
+                    if (storeLine) {
+                        titleInput.value = storeLine.split(':')[1].trim();
+                        textOutput.value = lines.filter(l => !l.includes('STORE:')).join('\n');
+                    } else {
+                        textOutput.value = finalResult;
+                    }
+                }
+            } catch (err) {
+                console.error("辨識過程最終失敗：", err);
+                textOutput.value = "";
+                alert("AI 辨識發生錯誤。請確認您的環境是否支援 Google Gemini API。\n提示：若持續失敗，您可以手動輸入右側的店名與菜單內容。");
+            } finally {
+                loadingEl.classList.add('hidden');
             }
         }
 
@@ -260,14 +266,13 @@
             const items = rawText.split('\n').map(line => {
                 const parts = line.trim().split(/\s+/);
                 if (parts.length < 2) return null;
-                // 提取最後一個空格後的數字作為價格
                 const priceStr = parts.pop().replace(/[^0-9]/g, "");
                 const price = parseInt(priceStr) || 0;
                 return { name: parts.join(" "), price };
             }).filter(i => i !== null);
 
             if (items.length === 0) {
-                alert("菜單格式解析失敗。請確保每行格式為：[品名][空格][價格]");
+                alert("格式錯誤。請確保每行格式為：品名 價格");
                 return;
             }
 
@@ -275,7 +280,6 @@
             menuLibrary.unshift(newMenu);
             localStorage.setItem('menuLibrary', JSON.stringify(menuLibrary));
             
-            // 重置輸入
             document.getElementById('new-menu-title').value = "";
             document.getElementById('raw-menu-text').value = "";
             document.getElementById('image-preview').classList.add('hidden');
@@ -417,7 +421,6 @@
             allOrders.unshift(order);
             localStorage.setItem('allOrders', JSON.stringify(allOrders));
             
-            // 重置
             cart = {};
             renderActiveMenu();
             switchView('summary');
@@ -430,7 +433,6 @@
                 return;
             }
 
-            // 統計各品項總數
             const summary = {};
             allOrders.forEach(order => {
                 order.items.forEach(item => {
