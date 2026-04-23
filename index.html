@@ -97,14 +97,24 @@
                                 <option value="點心">
                             </datalist>
                         </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 mb-1 block">聯絡電話 <span class="font-normal text-gray-300">（選填）</span></label>
+                            <input type="tel" id="new-menu-phone" class="w-full p-2 border-b outline-none focus:border-blue-500 text-sm" placeholder="例：02-1234-5678">
+                        </div>
                         <button id="save-btn" onclick="saveToDatabase()" class="mt-auto bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center">
                             <span class="mr-2">💾</span> 儲存到資料庫
                         </button>
                     </div>
                 </div>
             </div>
-            <h2 class="text-lg font-bold mb-4 flex items-center px-2 text-gray-700"><span class="mr-2">📁</span> 菜單資料庫</h2>
-            <div id="database-list" class="space-y-6"></div>
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h2 class="text-lg font-bold flex items-center text-gray-700"><span class="mr-2">📁</span> 菜單資料庫</h2>
+            </div>
+            <div class="mb-4 space-y-3">
+                <input type="text" id="lib-search" oninput="filterLibrary()" class="w-full p-3 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-blue-300" placeholder="🔍 搜尋店名...">
+                <div id="lib-category-tabs" class="flex flex-wrap gap-2"></div>
+            </div>
+            <div id="database-list"></div>
         </section>
 
         <!-- View: Summary (統計) -->
@@ -156,6 +166,7 @@
         let currentUserName = "";
         let currentImageData = null;
         let editingMenuId = null;
+        let libFilter = { category: '全部', search: '' };
 
         if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
 
@@ -241,7 +252,8 @@
             if (!title) { alert("請輸入店名。"); return; }
             try {
                 const id = editingMenuId !== null ? editingMenuId : Date.now();
-                await db.collection('menus').doc(String(id)).set({ id, title, category, imageData: currentImageData || null });
+                const phone = document.getElementById('new-menu-phone').value.trim() || null;
+                await db.collection('menus').doc(String(id)).set({ id, title, category, phone, imageData: currentImageData || null });
                 cancelEdit();
                 alert("儲存成功！");
             } catch (e) {
@@ -256,6 +268,7 @@
             editingMenuId = id;
             document.getElementById('new-menu-title').value = menu.title;
             document.getElementById('new-menu-category').value = menu.category || '';
+            document.getElementById('new-menu-phone').value = menu.phone || '';
             currentImageData = menu.imageData || null;
             if (currentImageData) {
                 document.getElementById('image-preview').src = currentImageData;
@@ -276,6 +289,7 @@
             currentImageData = null;
             document.getElementById('new-menu-title').value = '';
             document.getElementById('new-menu-category').value = '';
+            document.getElementById('new-menu-phone').value = '';
             document.getElementById('image-preview').classList.add('hidden');
             document.getElementById('upload-placeholder').classList.remove('hidden');
             document.getElementById('form-title').innerHTML = '<span class="mr-2">➕</span> 新增菜單';
@@ -283,48 +297,69 @@
             document.getElementById('cancel-edit-btn').classList.add('hidden');
         }
 
+        function filterLibrary() {
+            libFilter.search = document.getElementById('lib-search').value.trim().toLowerCase();
+            renderLibrary();
+        }
+
+        function setLibCategoryFilter(cat) {
+            libFilter.category = cat;
+            renderLibrary();
+        }
+
         function renderLibrary() {
             const list = document.getElementById('database-list');
-            if (menuLibrary.length === 0) { list.innerHTML = `<div class="py-10 text-center text-gray-400">資料庫是空的</div>`; return; }
-            const groups = {};
-            menuLibrary.forEach(menu => {
-                const cat = menu.category || '未分類';
-                if (!groups[cat]) groups[cat] = [];
-                groups[cat].push(menu);
-            });
-            list.innerHTML = '';
-            Object.entries(groups).forEach(([cat, menus]) => {
-                const section = document.createElement('div');
-                section.innerHTML = `<h3 class="text-sm font-bold text-gray-500 mb-3 flex items-center"><span class="w-2 h-2 rounded-full bg-blue-400 mr-2 inline-block"></span>${cat}</h3>`;
-                const grid = document.createElement('div');
-                grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3';
-                menus.forEach(menu => {
-                    const isActive = activeMenuIds.includes(menu.id);
-                    const card = document.createElement('div');
-                    card.className = `bg-white rounded-xl border transition-all overflow-hidden ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
-                    card.innerHTML = `
-                        ${menu.imageData
-                            ? `<img src="${menu.imageData}" class="w-full h-32 object-cover cursor-pointer" onclick="viewMenuImage(menuLibrary.find(m=>m.id===${menu.id}).imageData)">`
-                            : `<div class="w-full h-32 bg-gray-100 flex items-center justify-center text-gray-300 text-4xl">📋</div>`}
-                        <div class="p-3">
-                            <div class="flex justify-between items-center mb-2">
-                                <h3 class="font-bold text-gray-800">${menu.title}</h3>
+            const tabsContainer = document.getElementById('lib-category-tabs');
+
+            // Build category tabs
+            const cats = ['全部', ...new Set(menuLibrary.map(m => m.category || '未分類'))];
+            tabsContainer.innerHTML = cats.map(cat => `
+                <button onclick="setLibCategoryFilter('${cat}')"
+                    class="text-xs font-bold px-3 py-1 rounded-full transition-colors ${libFilter.category === cat ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}">
+                    ${cat}
+                </button>`).join('');
+
+            // Filter menus
+            let filtered = menuLibrary;
+            if (libFilter.category !== '全部') filtered = filtered.filter(m => (m.category || '未分類') === libFilter.category);
+            if (libFilter.search) filtered = filtered.filter(m => m.title.toLowerCase().includes(libFilter.search));
+
+            if (filtered.length === 0) {
+                list.innerHTML = `<div class="py-10 text-center text-gray-400">${menuLibrary.length === 0 ? '資料庫是空的' : '找不到符合的菜單'}</div>`;
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3';
+            filtered.forEach(menu => {
+                const isActive = activeMenuIds.includes(menu.id);
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-xl border transition-all overflow-hidden ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
+                card.innerHTML = `
+                    ${menu.imageData
+                        ? `<img src="${menu.imageData}" class="w-full h-28 object-cover cursor-pointer" onclick="viewMenuImage(menuLibrary.find(m=>m.id===${menu.id}).imageData)">`
+                        : `<div class="w-full h-28 bg-gray-100 flex items-center justify-center text-gray-300 text-3xl">📋</div>`}
+                    <div class="p-2">
+                        <div class="mb-1">
+                            <h3 class="font-bold text-gray-800 text-sm leading-snug">${menu.title}</h3>
+                            <div class="flex items-center justify-between">
                                 <span class="text-[10px] text-gray-400">${menu.category || '未分類'}</span>
-                            </div>
-                            <div class="flex space-x-2">
-                                <button onclick="toggleActiveMenu(${menu.id})" class="flex-1 text-xs py-2 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
-                                    ${isActive ? '✓ 使用中' : '啟用'}
-                                </button>
-                                <button onclick="editMenu(${menu.id})" class="p-2 text-blue-300">✏️</button>
-                                <button onclick="deleteFromLibrary(${menu.id})" class="p-2 text-red-300">🗑️</button>
+                                ${menu.phone ? `<a href="tel:${menu.phone}" class="text-[10px] text-gray-400 hover:text-blue-500">📞 ${menu.phone}</a>` : ''}
                             </div>
                         </div>
-                    `;
-                    grid.appendChild(card);
-                });
-                section.appendChild(grid);
-                list.appendChild(section);
+                        <div class="flex gap-1 mt-2">
+                            <button onclick="toggleActiveMenu(${menu.id})" class="flex-1 text-[11px] py-1.5 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
+                                ${isActive ? '✓ 使用中' : '啟用'}
+                            </button>
+                            <button onclick="editMenu(${menu.id})" class="px-2 text-blue-300 text-sm">✏️</button>
+                            <button onclick="deleteFromLibrary(${menu.id})" class="px-2 text-red-300 text-sm">🗑️</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
             });
+            list.innerHTML = '';
+            list.appendChild(grid);
         }
 
         async function toggleActiveMenu(id) {
@@ -384,6 +419,7 @@
                                 : `<div class="w-full min-h-[200px] h-full bg-gray-100 flex items-center justify-center text-gray-300 text-6xl">📋</div>`}
                             <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
                                 <span class="text-sm font-black text-gray-800">${menu.title}</span>
+                                ${menu.phone ? `<a href="tel:${menu.phone}" class="text-xs text-gray-500 ml-1">📞 ${menu.phone}</a>` : ''}
                             </div>
                             ${menu.imageData ? `<button onclick="viewMenuImage(activeMenus.find(m=>m.id===${menu.id}).imageData)" class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-xs px-2 py-1 rounded-full font-bold text-gray-600 shadow-sm">🔍 放大</button>` : ''}
                         </div>
