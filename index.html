@@ -16,7 +16,6 @@
 </head>
 <body class="pb-32">
 
-    <!-- 導航 -->
     <nav class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
             <h1 class="text-xl font-bold text-blue-600 flex items-center">
@@ -42,20 +41,14 @@
                 <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-widest">Your Name</label>
                 <input type="text" id="user-name-input" oninput="saveUserName()" class="w-full p-4 rounded-xl bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-400 outline-none transition-all text-lg font-bold" placeholder="輸入名字開始點餐...">
             </div>
-
-            <div id="menu-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <!-- 菜單品項 -->
-            </div>
+            <div id="menu-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
         </section>
 
         <!-- View: Admin (資料庫管理) -->
         <section id="view-admin" class="hidden">
-            <!-- 上傳/辨識新菜單 -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6">
                 <h2 class="text-lg font-bold mb-4 flex items-center"><span class="mr-2">➕</span> 新增菜單到資料庫</h2>
-                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- 左側：上傳 -->
                     <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:bg-gray-50 transition-colors relative">
                         <input type="file" id="menu-image" accept="image/*" class="hidden" onchange="handleImageUpload(this)">
                         <label for="menu-image" class="cursor-pointer block py-8">
@@ -67,30 +60,22 @@
                         </label>
                         <div id="ai-loading" class="hidden absolute inset-0 bg-white/90 flex flex-col items-center justify-center rounded-xl z-10">
                             <div class="loader mb-2"></div>
-                            <span class="text-xs font-bold text-blue-600">AI 正在努力閱讀菜單中...</span>
+                            <span class="text-xs font-bold text-blue-600 font-sans">AI 正在努力閱讀菜單中...</span>
                         </div>
                     </div>
-
-                    <!-- 右側：編輯 -->
                     <div class="flex flex-col">
-                        <label class="text-xs font-bold text-gray-400 mb-1">菜單名稱 (例如：泰老饕)</label>
-                        <input type="text" id="new-menu-title" class="w-full p-2 border-b mb-4 outline-none focus:border-blue-500 font-bold text-lg" placeholder="辨識後會自動填入，也可手動修改">
-                        
+                        <label class="text-xs font-bold text-gray-400 mb-1">菜單名稱</label>
+                        <input type="text" id="new-menu-title" class="w-full p-2 border-b mb-4 outline-none focus:border-blue-500 font-bold text-lg" placeholder="店名">
                         <label class="text-xs font-bold text-gray-400 mb-1">辨識結果 (品名 價格)</label>
-                        <textarea id="raw-menu-text" class="flex-grow w-full h-48 p-3 bg-gray-50 rounded-lg text-xs font-mono outline-none focus:bg-white border border-transparent focus:border-blue-200" placeholder="AI 辨識後的內容會出現在這裡..."></textarea>
-                        
+                        <textarea id="raw-menu-text" class="flex-grow w-full h-48 p-3 bg-gray-50 rounded-lg text-xs font-mono outline-none focus:bg-white border border-transparent focus:border-blue-200" placeholder="品項 價格..."></textarea>
                         <button onclick="saveToDatabase()" class="mt-4 bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center">
                             <span class="mr-2">💾</span> 儲存到我的資料庫
                         </button>
                     </div>
                 </div>
             </div>
-
-            <!-- 菜單資料庫列表 -->
             <h2 class="text-lg font-bold mb-4 flex items-center px-2 text-gray-700"><span class="mr-2">📁</span> 我的菜單資料庫</h2>
-            <div id="database-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- 資料庫菜單卡片 -->
-            </div>
+            <div id="database-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
         </section>
 
         <!-- View: Summary (統計) -->
@@ -98,7 +83,7 @@
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-black italic">ORDERS SUMMARY</h2>
-                    <button onclick="clearOrders()" class="text-xs font-bold text-red-500 bg-red-50 px-3 py-1 rounded-full">清空點餐紀錄</button>
+                    <button onclick="clearOrders()" class="text-xs font-bold text-red-500 bg-red-50 px-3 py-1 rounded-full">清空紀錄</button>
                 </div>
                 <div id="order-summary-content"></div>
             </div>
@@ -106,7 +91,6 @@
 
     </main>
 
-    <!-- 底部控制欄 -->
     <div id="cart-bar" class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 px-6 py-4 shadow-2xl z-50">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div>
@@ -120,7 +104,6 @@
     </div>
 
     <script>
-        // --- 已經為你填入 API Key ---
         const apiKey = "AIzaSyDjFNKIR8bvO_6x4-qnmx2NZnq7kXpbpKE"; 
         
         let menuLibrary = JSON.parse(localStorage.getItem('menuLibrary')) || [];
@@ -155,7 +138,6 @@
             if (view === 'admin') renderLibrary();
         }
 
-        // --- AI 辨識部分 ---
         async function handleImageUpload(input) {
             const file = input.files[0];
             if (!file) return;
@@ -170,116 +152,83 @@
         }
 
         async function recognizeMenu(base64) {
-            if (!apiKey) {
-                alert("錯誤：API Key 遺失，請確認程式碼。");
-                return;
-            }
-
             document.getElementById('ai-loading').classList.remove('hidden');
-            document.getElementById('raw-menu-text').value = ""; // 清空上次結果
+            document.getElementById('raw-menu-text').value = "";
             
-            try {
-                // 使用穩定的 1.5 Flash 模型
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                
-                const prompt = "你是一個菜單辨識專家。請從這張圖片中提取所有的「品名」與「價格」。輸出格式必須嚴格遵守：品名 數字。每行一個品項。如果圖片頂部有明顯的店名，請在第一行輸出：STORE:店名。不要說任何贅字。例如：香滷肉飯 45";
-                
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ 
-                            parts: [
-                                { text: prompt }, 
-                                { inlineData: { mimeType: "image/png", data: base64 } }
-                            ] 
-                        }]
-                    })
-                });
+            // 嘗試不同的模型路徑以避開 404
+            const urls = [
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`
+            ];
 
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error?.message || "網路請求錯誤");
+            const prompt = "你是一個菜單辨識專家。請從這張圖片中提取所有的「品名」與「價格」。輸出格式必須嚴格遵守：品名 數字。每行一個品項。如果圖片頂部有明顯的店名，請在第一行輸出：STORE:店名。不要說任何贅字。範例：滷肉飯 35";
+
+            for (let url of urls) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ 
+                                parts: [
+                                    { text: prompt }, 
+                                    { inlineData: { mimeType: "image/png", data: base64 } }
+                                ] 
+                            }]
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                        if (text) {
+                            if (text.includes("STORE:")) {
+                                const lines = text.split('\n');
+                                const storeLine = lines.find(l => l.includes("STORE:"));
+                                document.getElementById('new-menu-title').value = storeLine.replace("STORE:", "").trim();
+                                text = lines.filter(l => !l.includes("STORE:")).join('\n').trim();
+                            }
+                            document.getElementById('raw-menu-text').value = text;
+                            document.getElementById('ai-loading').classList.add('hidden');
+                            return; // 成功後直接跳出
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`嘗試 URL ${url} 失敗`, e);
                 }
-
-                const result = await response.json();
-                let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                
-                if (!text || text.trim() === "") {
-                    alert("辨識失敗：AI 無法辨識此圖片中的文字，請嘗試拍得更清楚。");
-                    return;
-                }
-
-                // 處理辨識出的店名
-                if (text.includes("STORE:")) {
-                    const lines = text.split('\n');
-                    const storeLine = lines.find(l => l.includes("STORE:"));
-                    const storeName = storeLine.replace("STORE:", "").trim();
-                    document.getElementById('new-menu-title').value = storeName;
-                    text = lines.filter(l => !l.includes("STORE:")).join('\n').trim();
-                }
-
-                document.getElementById('raw-menu-text').value = text;
-                
-            } catch (e) { 
-                console.error("AI Error:", e);
-                alert(`辨識發生錯誤：${e.message}\n請確認你的 API Key 是否已開通 Gemini API 權限。`); 
             }
-            finally { 
-                document.getElementById('ai-loading').classList.add('hidden'); 
-            }
+            
+            document.getElementById('ai-loading').classList.add('hidden');
+            alert("辨識失敗。這可能是因為 API 金鑰限制或圖片不清楚。請嘗試手動輸入或檢查 Google AI 控制台權限。");
         }
 
-        // --- 資料庫管理 ---
         function saveToDatabase() {
             const title = document.getElementById('new-menu-title').value.trim();
             const rawText = document.getElementById('raw-menu-text').value.trim();
-            
-            if (!title || !rawText) {
-                alert("請確保已有『菜單名稱』與『品項內容』。");
-                return;
-            }
+            if (!title || !rawText) { alert("請確保已有店名與辨識結果。"); return; }
 
             const items = rawText.split('\n').map(line => {
                 const parts = line.trim().split(/\s+/);
                 if (parts.length < 2) return null;
-                // 抓取最後一個數字作為價格
-                const priceStr = parts.pop().replace(/[^0-9]/g, "");
-                const price = parseInt(priceStr) || 0;
+                const price = parseInt(parts.pop().replace(/[^0-9]/g, "")) || 0;
                 return { name: parts.join(" "), price };
             }).filter(i => i && i.name);
 
-            if (items.length === 0) {
-                alert("解析失敗。格式應為：品名 價格 (每行一個)");
-                return;
-            }
+            if (items.length === 0) { alert("格式解析失敗，請手動校正品名後方需有價格。"); return; }
 
-            const newEntry = { id: Date.now(), title, items };
-            menuLibrary.push(newEntry);
+            menuLibrary.push({ id: Date.now(), title, items });
             localStorage.setItem('menuLibrary', JSON.stringify(menuLibrary));
-            
-            // 重置輸入區
-            document.getElementById('new-menu-title').value = "";
-            document.getElementById('raw-menu-text').value = "";
-            document.getElementById('image-preview').classList.add('hidden');
-            document.getElementById('upload-placeholder').classList.remove('hidden');
-            
             renderLibrary();
-            alert(`已成功將「${title}」加入資料庫！`);
+            alert("儲存成功！");
         }
 
         function renderLibrary() {
             const list = document.getElementById('database-list');
-            list.innerHTML = '';
-            if (menuLibrary.length === 0) {
-                list.innerHTML = `<div class="col-span-full py-10 text-center text-gray-400">目前資料庫是空的</div>`;
-                return;
-            }
-
+            list.innerHTML = menuLibrary.length ? '' : `<div class="col-span-full py-10 text-center text-gray-400">資料庫是空的</div>`;
             menuLibrary.forEach(menu => {
                 const isActive = activeMenu && activeMenu.id === menu.id;
                 const card = document.createElement('div');
-                card.className = `bg-white p-4 rounded-xl border transition-all ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100 hover:bg-gray-50'}`;
+                card.className = `bg-white p-4 rounded-xl border transition-all ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
                         <h3 class="font-bold text-gray-800">${menu.title}</h3>
@@ -287,9 +236,9 @@
                     </div>
                     <div class="flex space-x-2">
                         <button onclick="setActiveMenu(${menu.id})" class="flex-1 text-xs py-2 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
-                            ${isActive ? '今日使用中' : '啟用此菜單'}
+                            ${isActive ? '使用中' : '啟用'}
                         </button>
-                        <button onclick="deleteFromLibrary(${menu.id})" class="p-2 text-red-300 hover:text-red-500">🗑️</button>
+                        <button onclick="deleteFromLibrary(${menu.id})" class="p-2 text-red-300">🗑️</button>
                     </div>
                 `;
                 list.appendChild(card);
@@ -297,23 +246,19 @@
         }
 
         function setActiveMenu(id) {
-            const target = menuLibrary.find(m => m.id === id);
-            if (target) {
-                activeMenu = target;
-                localStorage.setItem('activeMenu', JSON.stringify(activeMenu));
-                cart = {};
-                renderActiveMenu();
-                renderLibrary();
-                alert(`成功切換！現在大家可以開始點「${target.title}」了。`);
-                switchView('user');
-            }
+            activeMenu = menuLibrary.find(m => m.id === id);
+            localStorage.setItem('activeMenu', JSON.stringify(activeMenu));
+            cart = {};
+            renderActiveMenu();
+            renderLibrary();
+            switchView('user');
         }
 
         function deleteFromLibrary(id) {
-            if (!confirm("確定要從資料庫刪除這份菜單存檔嗎？")) return;
+            if (!confirm("確定刪除？")) return;
             menuLibrary = menuLibrary.filter(m => m.id !== id);
             localStorage.setItem('menuLibrary', JSON.stringify(menuLibrary));
-            if (activeMenu && activeMenu.id === id) {
+            if (activeMenu?.id === id) {
                 activeMenu = null;
                 localStorage.removeItem('activeMenu');
             }
@@ -321,31 +266,25 @@
             renderActiveMenu();
         }
 
-        // --- 點餐功能 ---
         function renderActiveMenu() {
             const container = document.getElementById('menu-container');
             const titleDisplay = document.getElementById('active-menu-name');
             container.innerHTML = '';
-
             if (!activeMenu) {
                 titleDisplay.innerText = "尚未選擇菜單";
-                container.innerHTML = `<div class="col-span-full py-20 text-center text-gray-400 font-bold">目前沒有啟用的菜單。<br>請到「菜單資料庫」選擇一份菜單啟用。</div>`;
+                container.innerHTML = `<div class="col-span-full py-20 text-center text-gray-400">請到菜單資料庫啟用一份菜單。</div>`;
                 return;
             }
-
             titleDisplay.innerText = activeMenu.title;
             activeMenu.items.forEach((item, idx) => {
                 const card = document.createElement('div');
                 card.className = "bg-white p-4 rounded-xl border border-gray-100 flex flex-col justify-between";
                 card.innerHTML = `
-                    <div>
-                        <h4 class="font-bold text-gray-800 text-sm mb-1 line-clamp-2">${item.name}</h4>
-                        <p class="text-blue-600 font-black mb-3">$${item.price}</p>
-                    </div>
+                    <div><h4 class="font-bold text-gray-800 text-sm mb-1 line-clamp-2">${item.name}</h4><p class="text-blue-600 font-black mb-3">$${item.price}</p></div>
                     <div class="flex items-center justify-between bg-gray-50 rounded-lg p-1">
-                        <button onclick="addToCart(${idx}, -1)" class="w-8 h-8 flex items-center justify-center">-</button>
+                        <button onclick="addToCart(${idx}, -1)" class="w-8 h-8">-</button>
                         <span class="text-sm font-bold" id="qty-${idx}">${cart[idx] || 0}</span>
-                        <button onclick="addToCart(${idx}, 1)" class="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-blue-600">+</button>
+                        <button onclick="addToCart(${idx}, 1)" class="w-8 h-8 bg-white rounded shadow-sm text-blue-600">+</button>
                     </div>
                 `;
                 container.appendChild(card);
@@ -361,8 +300,7 @@
         }
 
         function updateCartUI() {
-            let total = 0;
-            let count = 0;
+            let total = 0, count = 0;
             if (activeMenu) {
                 Object.entries(cart).forEach(([idx, qty]) => {
                     total += activeMenu.items[idx].price * qty;
@@ -376,82 +314,25 @@
         }
 
         function submitOrder() {
-            const items = Object.entries(cart).map(([idx, qty]) => ({
-                name: activeMenu.items[idx].name,
-                price: activeMenu.items[idx].price,
-                qty
-            }));
-            const order = {
-                user: currentUserName,
-                shop: activeMenu.title,
-                items,
-                total: document.getElementById('cart-total').innerText,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            allOrders.unshift(order);
+            const items = Object.entries(cart).map(([idx, qty]) => ({ name: activeMenu.items[idx].name, price: activeMenu.items[idx].price, qty }));
+            allOrders.unshift({ user: currentUserName, shop: activeMenu.title, items, total: document.getElementById('cart-total').innerText, time: new Date().toLocaleTimeString() });
             localStorage.setItem('allOrders', JSON.stringify(allOrders));
             cart = {};
             renderActiveMenu();
-            alert("點餐成功！請到訂單統計查看。");
             switchView('summary');
         }
 
         function renderSummary() {
             const container = document.getElementById('order-summary-content');
-            if (allOrders.length === 0) {
-                container.innerHTML = '<p class="text-center py-20 text-gray-400">目前沒有訂單紀錄</p>';
-                return;
-            }
-
+            if (allOrders.length === 0) { container.innerHTML = '<p class="text-center py-20 text-gray-400">無紀錄</p>'; return; }
             const aggregate = {};
-            let grandTotal = 0;
-            allOrders.forEach(o => {
-                o.items.forEach(i => {
-                    aggregate[i.name] = (aggregate[i.name] || 0) + i.qty;
-                    grandTotal += i.price * i.qty;
-                });
-            });
-
-            let html = `
-                <div class="bg-gray-900 text-white p-6 rounded-2xl mb-6 shadow-xl">
-                    <h3 class="text-xs font-black text-gray-400 uppercase mb-4 tracking-tighter text-blue-400">總計購買清單</h3>
-                    <div class="space-y-2 mb-4">
-                        ${Object.entries(aggregate).map(([name, qty]) => `
-                            <div class="flex justify-between border-b border-white/10 pb-1">
-                                <span class="text-sm">${name}</span>
-                                <span class="font-bold">x${qty}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs text-gray-400">應付總金額</p>
-                        <p class="text-2xl font-black italic">NT$ ${grandTotal}</p>
-                    </div>
-                </div>
-                <div class="space-y-4">
-            `;
-
-            allOrders.forEach(o => {
-                html += `
-                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        <div class="flex justify-between mb-2">
-                            <span class="font-bold text-gray-800">${o.user} <span class="text-[10px] text-gray-400 font-normal">@ ${o.shop}</span></span>
-                            <span class="font-bold text-blue-600">$${o.total}</span>
-                        </div>
-                        <div class="text-xs text-gray-500">${o.items.map(i => `${i.name}x${i.qty}`).join(', ')}</div>
-                    </div>
-                `;
-            });
+            allOrders.forEach(o => o.items.forEach(i => aggregate[i.name] = (aggregate[i.name] || 0) + i.qty));
+            let html = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6">${Object.entries(aggregate).map(([name, qty]) => `<div class="flex justify-between border-b border-white/10 pb-1 mb-1"><span>${name}</span><span class="font-bold">x${qty}</span></div>`).join('')}</div><div class="space-y-4">`;
+            allOrders.forEach(o => { html += `<div class="bg-gray-50 p-4 rounded-xl border"><b>${o.user}</b> <span class="text-blue-600">$${o.total}</span><div class="text-xs text-gray-500">${o.items.map(i => `${i.name}x${i.qty}`).join(', ')}</div></div>`; });
             container.innerHTML = html + "</div>";
         }
 
-        function clearOrders() {
-            if (confirm("確定要清空所有人的點餐紀錄嗎？")) {
-                allOrders = [];
-                localStorage.setItem('allOrders', JSON.stringify(allOrders));
-                renderSummary();
-            }
-        }
+        function clearOrders() { if (confirm("確定清空？")) { allOrders = []; localStorage.setItem('allOrders', JSON.stringify(allOrders)); renderSummary(); } }
     </script>
 </body>
 </html>
