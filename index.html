@@ -67,15 +67,21 @@
                         </label>
                         <div id="ai-loading" class="hidden absolute inset-0 bg-white/90 flex flex-col items-center justify-center rounded-xl z-10">
                             <div class="loader mb-2"></div>
-                            <span class="text-xs font-bold text-blue-600">AI 正在辨識...</span>
+                            <span class="text-xs font-bold text-blue-600">AI 正在努力閱讀菜單中...</span>
                         </div>
                     </div>
 
                     <!-- 右側：編輯 -->
                     <div class="flex flex-col">
-                        <input type="text" id="new-menu-title" class="w-full p-2 border-b mb-2 outline-none focus:border-blue-500 font-bold" placeholder="輸入這份菜單的名字 (如: 巷口麵攤)">
-                        <textarea id="raw-menu-text" class="flex-grow w-full h-32 p-3 bg-gray-50 rounded-lg text-xs font-mono outline-none focus:bg-white border border-transparent focus:border-blue-200" placeholder="品名 價格..."></textarea>
-                        <button onclick="saveToDatabase()" class="mt-4 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100">儲存到資料庫</button>
+                        <label class="text-xs font-bold text-gray-400 mb-1">菜單名稱 (例如：泰老饕)</label>
+                        <input type="text" id="new-menu-title" class="w-full p-2 border-b mb-4 outline-none focus:border-blue-500 font-bold text-lg" placeholder="辨識後會自動填入，也可手動修改">
+                        
+                        <label class="text-xs font-bold text-gray-400 mb-1">辨識結果 (品名 價格)</label>
+                        <textarea id="raw-menu-text" class="flex-grow w-full h-48 p-3 bg-gray-50 rounded-lg text-xs font-mono outline-none focus:bg-white border border-transparent focus:border-blue-200" placeholder="AI 辨識後的內容會出現在這裡..."></textarea>
+                        
+                        <button onclick="saveToDatabase()" class="mt-4 bg-green-600 text-white py-4 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 flex items-center justify-center">
+                            <span class="mr-2">💾</span> 儲存到我的資料庫
+                        </button>
                     </div>
                 </div>
             </div>
@@ -114,11 +120,8 @@
     </div>
 
     <script>
-        const apiKey = ""; 
-        
-        // --- 資料結構 ---
-        // menuLibrary: [ { id: 123, title: "店名", items: [{name, price}] }, ... ]
-        // activeMenu: { title: "店名", items: [] }
+        // 請務必在此填入你的 API Key 才能執行 AI 辨識
+        const apiKey = "AIzaSyDjFNKIR8bvO_6x4-qnmx2NZnq7kXpbpKE"; 
         
         let menuLibrary = JSON.parse(localStorage.getItem('menuLibrary')) || [];
         let activeMenu = JSON.parse(localStorage.getItem('activeMenu')) || null;
@@ -167,18 +170,45 @@
         }
 
         async function recognizeMenu(base64) {
+            if (!apiKey) {
+                alert("請先在程式碼中填入 apiKey 才能使用辨識功能。");
+                document.getElementById('ai-loading').classList.add('hidden');
+                return;
+            }
+
             document.getElementById('ai-loading').classList.remove('hidden');
             try {
+                // 指令優化，要求 AI 輸出乾淨的列表
+                const prompt = "你是一個菜單辨識專家。請從這張圖片中提取所有的「品名」與「價格」。輸出格式必須嚴格遵守：品名 數字。每行一個品項。如果圖片頂部有明顯的店名，請在第一行輸出：STORE:店名。不要說任何廢話。";
+                
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: "請提取菜單圖片中的品名與價格。格式：品名 價格。每行一個。不要額外說明。" }, { inlineData: { mimeType: "image/png", data: base64 } }] }]
+                        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/png", data: base64 } }] }]
                     })
                 });
                 const result = await response.json();
-                document.getElementById('raw-menu-text').value = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            } catch (e) { alert("辨識失敗"); }
+                let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                
+                // 處理辨識出的店名
+                if (text.includes("STORE:")) {
+                    const lines = text.split('\n');
+                    const storeLine = lines.find(l => l.includes("STORE:"));
+                    const storeName = storeLine.replace("STORE:", "").trim();
+                    document.getElementById('new-menu-title').value = storeName;
+                    text = lines.filter(l => !l.includes("STORE:")).join('\n').trim();
+                }
+
+                document.getElementById('raw-menu-text').value = text;
+                
+                if (!text) {
+                    alert("辨識結果為空，請確保照片清晰。");
+                }
+            } catch (e) { 
+                console.error(e);
+                alert("辨識失敗，請檢查網路或 API Key 設定。"); 
+            }
             finally { document.getElementById('ai-loading').classList.add('hidden'); }
         }
 
@@ -186,13 +216,23 @@
         function saveToDatabase() {
             const title = document.getElementById('new-menu-title').value.trim();
             const rawText = document.getElementById('raw-menu-text').value.trim();
-            if (!title || !rawText) return alert("請輸入標題與內容");
+            
+            if (!title || !rawText) {
+                alert("請確保已有『菜單名稱』與『品項內容』");
+                return;
+            }
 
             const items = rawText.split('\n').map(line => {
                 const parts = line.trim().split(/\s+/);
-                const price = parseInt(parts.pop()) || 0;
+                if (parts.length < 2) return null;
+                const price = parseInt(parts.pop().replace(/[^0-9]/g, "")) || 0;
                 return { name: parts.join(" "), price };
-            }).filter(i => i.name);
+            }).filter(i => i && i.name);
+
+            if (items.length === 0) {
+                alert("格式解析失敗，請確保內容為：品名 價格");
+                return;
+            }
 
             const newEntry = { id: Date.now(), title, items };
             menuLibrary.push(newEntry);
@@ -205,12 +245,17 @@
             document.getElementById('upload-placeholder').classList.remove('hidden');
             
             renderLibrary();
-            alert("已儲存至資料庫！");
+            alert(`已成功將「${title}」加入資料庫！`);
         }
 
         function renderLibrary() {
             const list = document.getElementById('database-list');
             list.innerHTML = '';
+            if (menuLibrary.length === 0) {
+                list.innerHTML = `<div class="col-span-full py-10 text-center text-gray-400">目前資料庫是空的</div>`;
+                return;
+            }
+
             menuLibrary.forEach(menu => {
                 const isActive = activeMenu && activeMenu.id === menu.id;
                 const card = document.createElement('div');
@@ -236,17 +281,16 @@
             if (target) {
                 activeMenu = target;
                 localStorage.setItem('activeMenu', JSON.stringify(activeMenu));
-                // 切換菜單後清空目前購物車
                 cart = {};
                 renderActiveMenu();
                 renderLibrary();
-                alert(`切換至：${target.title}`);
+                alert(`成功切換！現在大家可以開始點「${target.title}」了。`);
                 switchView('user');
             }
         }
 
         function deleteFromLibrary(id) {
-            if (!confirm("確定刪除此菜單存檔？")) return;
+            if (!confirm("確定要從資料庫刪除這份菜單存檔嗎？")) return;
             menuLibrary = menuLibrary.filter(m => m.id !== id);
             localStorage.setItem('menuLibrary', JSON.stringify(menuLibrary));
             if (activeMenu && activeMenu.id === id) {
@@ -265,7 +309,7 @@
 
             if (!activeMenu) {
                 titleDisplay.innerText = "尚未選擇菜單";
-                container.innerHTML = `<div class="col-span-full py-20 text-center text-gray-400 font-bold">請到「資料庫」新增或啟用一份菜單</div>`;
+                container.innerHTML = `<div class="col-span-full py-20 text-center text-gray-400 font-bold">目前沒有啟用的菜單。<br>請到「菜單資料庫」選擇一份菜單啟用。</div>`;
                 return;
             }
 
@@ -308,7 +352,7 @@
             document.getElementById('cart-total').innerText = total;
             const btn = document.getElementById('submit-btn');
             btn.disabled = !(currentUserName && count > 0);
-            btn.innerText = !currentUserName ? "輸入名字" : (count > 0 ? "確認點餐" : "請選擇品項");
+            btn.innerText = !currentUserName ? "請輸入名字" : (count > 0 ? "確認送出點餐" : "請選擇餐點");
         }
 
         function submitOrder() {
@@ -328,7 +372,7 @@
             localStorage.setItem('allOrders', JSON.stringify(allOrders));
             cart = {};
             renderActiveMenu();
-            alert("點餐成功！");
+            alert("點餐成功！請到訂單統計查看。");
             switchView('summary');
         }
 
@@ -350,7 +394,7 @@
 
             let html = `
                 <div class="bg-gray-900 text-white p-6 rounded-2xl mb-6 shadow-xl">
-                    <h3 class="text-xs font-black text-gray-400 uppercase mb-4 tracking-tighter text-blue-400">Total Purchase List</h3>
+                    <h3 class="text-xs font-black text-gray-400 uppercase mb-4 tracking-tighter text-blue-400">總計購買清單</h3>
                     <div class="space-y-2 mb-4">
                         ${Object.entries(aggregate).map(([name, qty]) => `
                             <div class="flex justify-between border-b border-white/10 pb-1">
@@ -360,7 +404,7 @@
                         `).join('')}
                     </div>
                     <div class="text-right">
-                        <p class="text-xs text-gray-400">Grand Total</p>
+                        <p class="text-xs text-gray-400">應付總金額</p>
                         <p class="text-2xl font-black italic">NT$ ${grandTotal}</p>
                     </div>
                 </div>
@@ -382,7 +426,7 @@
         }
 
         function clearOrders() {
-            if (confirm("清空目前所有點餐紀錄？")) {
+            if (confirm("確定要清空所有人的點餐紀錄嗎？")) {
                 allOrders = [];
                 localStorage.setItem('allOrders', JSON.stringify(allOrders));
                 renderSummary();
