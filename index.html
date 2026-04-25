@@ -18,7 +18,6 @@
         html.dark .bg-white { background-color: #1e293b !important; }
         html.dark .bg-gray-50 { background-color: #0f172a !important; }
         html.dark .bg-gray-100 { background-color: #334155 !important; }
-        html.dark #cart-bar { background-color: rgba(30,41,59,0.9) !important; border-color: #334155 !important; }
         html.dark .text-gray-800 { color: #f1f5f9 !important; }
         html.dark .text-gray-700 { color: #e2e8f0 !important; }
         html.dark .text-gray-600 { color: #cbd5e1 !important; }
@@ -60,7 +59,7 @@
                 <label class="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-widest">你的名字</label>
                 <input type="text" id="user-name-input" oninput="saveUserName()" class="w-full p-4 rounded-xl bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-400 outline-none transition-all text-lg font-bold" placeholder="輸入名字開始點餐...">
             </div>
-            <div id="menu-tabs" class="hidden flex gap-2 mb-4 flex-wrap overflow-x-auto"></div>
+            <div id="menu-tabs" class="hidden bg-gray-100 rounded-2xl p-1 flex gap-1 mb-4 flex-wrap"></div>
             <div id="menu-container" class="space-y-4"></div>
         </section>
 
@@ -92,15 +91,6 @@
 
     </main>
 
-    <div id="cart-bar" class="fixed bottom-5 right-4 z-50 flex flex-col items-end gap-2">
-        <div class="flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-gray-100">
-            <span class="text-[10px] text-gray-400 font-bold uppercase">點餐人</span>
-            <span id="cart-name-display" class="text-sm font-black text-gray-700">—</span>
-        </div>
-        <button id="submit-btn" onclick="submitOrder()" disabled class="bg-blue-600 text-white px-5 py-3 rounded-2xl font-black shadow-xl shadow-blue-200 disabled:bg-gray-300 disabled:text-gray-400 transition-all active:scale-95 text-sm whitespace-nowrap">
-            請輸入名字
-        </button>
-    </div>
 
     <!-- Menu Form Modal -->
     <div id="menu-form-modal" class="hidden fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4" onclick="handleModalBackdrop(event)">
@@ -247,7 +237,6 @@
             });
             document.getElementById(`view-${view}`).classList.remove('hidden');
             document.getElementById(`btn-${view}`).classList.add('tab-active', 'text-blue-600');
-            document.getElementById('cart-bar').style.display = (view === 'user') ? 'flex' : 'none';
             if (view === 'summary') renderSummary();
         }
 
@@ -461,7 +450,7 @@
                 const card = document.getElementById(`menu-card-${m.id}`);
                 if (card) card.classList.toggle('hidden', m.id !== id);
                 const tab = document.getElementById(`menu-tab-${m.id}`);
-                if (tab) tab.className = `text-sm font-bold px-4 py-2 rounded-xl transition-colors whitespace-nowrap ${m.id === id ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200'}`;
+                if (tab) tab.className = `text-sm font-black px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${m.id === id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`;
             });
         }
 
@@ -486,7 +475,7 @@
                     const tab = document.createElement('button');
                     tab.id = `menu-tab-${menu.id}`;
                     tab.onclick = () => switchMenuTab(menu.id);
-                    tab.className = `text-sm font-bold px-4 py-2 rounded-xl transition-colors whitespace-nowrap ${menu.id === activeMenuTab ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-200'}`;
+                    tab.className = `text-sm font-black px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${menu.id === activeMenuTab ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`;
                     tab.textContent = menu.title;
                     tabsEl.appendChild(tab);
                 });
@@ -540,16 +529,12 @@
         }
 
         function updateCartUI() {
-            document.getElementById('cart-name-display').innerText = currentUserName || '—';
-            const btn = document.getElementById('submit-btn');
             const hasText = activeMenus.some(m => {
                 const container = document.getElementById(`order-rows-${m.id}`);
                 if (!container) return false;
                 return Array.from(container.querySelectorAll('input[placeholder="品項名稱"]')).some(i => i.value.trim());
             });
             const label = !currentUserName ? "請輸入名字" : (hasText ? "確認送出點餐" : "請輸入點餐內容");
-            btn.disabled = !(currentUserName && hasText);
-            btn.innerText = label;
             document.querySelectorAll('.in-card-submit').forEach(b => {
                 b.disabled = !(currentUserName && hasText);
                 b.innerText = label;
@@ -618,10 +603,10 @@
             let aggHtml = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-4">`;
 
             if (multiMenu) {
-                aggHtml += `<div class="flex gap-2 flex-wrap mb-5">`;
+                aggHtml += `<div class="bg-white/10 rounded-2xl p-1 flex gap-1 flex-wrap mb-5">`;
                 summaryMenuTitles.forEach((title, idx) => {
                     const active = title === summaryTab;
-                    aggHtml += `<button onclick="setSummaryTab(${idx})" class="text-xs font-bold px-3 py-1.5 rounded-full transition-colors ${active ? 'bg-blue-500 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'}">${title}</button>`;
+                    aggHtml += `<button onclick="setSummaryTab(${idx})" class="text-sm font-black px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${active ? 'bg-blue-500 text-white shadow-md' : 'text-gray-400 hover:text-white'}">${title}</button>`;
                 });
                 aggHtml += `</div>`;
             }
