@@ -9,49 +9,99 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cubic+11&display=swap');
-        body { font-family: 'Cubic 11', sans-serif; background-color: #f1f5f9; }
-        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
-        .menu-card-active { border: 2px solid #3b82f6; background-color: #eff6ff; }
+        body { font-family: 'Cubic 11', sans-serif; background-color: #f5ede0; }
+        nav button.tab-active { background-color: #8b5e3c !important; color: #ffffff !important; border-radius: 0.5rem; padding: 0.25rem 0.75rem; }
+        html.dark nav button.tab-active { background-color: #c4863c !important; color: #ffffff !important; }
+        html.dark nav button:not(.tab-active) { color: #c4a882; }
+        .menu-card-active { border: 2px solid #8b5e3c; background-color: #faf0e6; }
 
-        html.dark body { background-color: #0f172a; color: #f1f5f9; }
-        html.dark nav { background-color: #1e293b !important; }
-        html.dark .bg-white { background-color: #1e293b !important; }
-        html.dark .bg-gray-50 { background-color: #0f172a !important; }
-        html.dark .bg-gray-100 { background-color: #334155 !important; }
-        html.dark .text-gray-800 { color: #f1f5f9 !important; }
-        html.dark .text-gray-700 { color: #e2e8f0 !important; }
-        html.dark .text-gray-600 { color: #cbd5e1 !important; }
-        html.dark .text-gray-500 { color: #94a3b8 !important; }
-        html.dark .text-gray-400 { color: #475569 !important; }
-        html.dark .border-gray-200 { border-color: #334155 !important; }
-        html.dark .border-gray-100 { border-color: #1e293b !important; }
-        html.dark .border-b { border-color: #334155 !important; }
-        html.dark .border-dashed { border-color: #334155 !important; }
-        html.dark .ring-1 { --tw-ring-color: #334155 !important; }
-        html.dark input, html.dark textarea { background-color: #0f172a !important; color: #f1f5f9 !important; }
-        html.dark input::placeholder, html.dark textarea::placeholder { color: #475569 !important; }
-        html.dark .menu-card-active { background-color: #1e3a5f !important; }
-        html.dark .hover\:bg-gray-50:hover { background-color: #253146 !important; }
+        /* ── 奶茶色系 ── */
+        .bg-white  { background-color: #fdf8f2 !important; }
+        .bg-gray-50 { background-color: #f8f1e8 !important; }
+        .bg-gray-100 { background-color: #ede3d6 !important; }
+        .bg-gray-900 { background-color: #3c2415 !important; }
+
+        .bg-blue-600 { background-color: #8b5e3c !important; }
+        .bg-blue-500 { background-color: #9b6e4c !important; }
+        .bg-blue-50  { background-color: #faf0e6 !important; }
+        .bg-blue-100 { background-color: #f2e4d4 !important; }
+        .text-blue-600 { color: #8b5e3c !important; }
+        .text-blue-500 { color: #9b6e4c !important; }
+        .text-blue-400 { color: #b8936a !important; }
+        .text-blue-300 { color: #c4a882 !important; }
+        .hover\:bg-blue-100:hover { background-color: #f2e4d4 !important; }
+        .hover\:bg-blue-700:hover { background-color: #7a5234 !important; }
+        .border-blue-300 { border-color: #c4a882 !important; }
+        .focus\:ring-blue-400:focus { --tw-ring-color: rgba(196,168,130,.5) !important; }
+        .focus\:border-blue-300:focus { border-color: #c4a882 !important; }
+        .focus\:border-blue-400:focus { border-color: #b8936a !important; }
+        .focus\:border-blue-500:focus { border-color: #8b5e3c !important; }
+        .shadow-blue-100 { --tw-shadow-color: rgba(244,225,200,.6) !important; }
+        .shadow-blue-200 { --tw-shadow-color: rgba(228,205,175,.6) !important; }
+
+        .text-gray-800 { color: #3d2b1f !important; }
+        .text-gray-700 { color: #5c4033 !important; }
+        .text-gray-600 { color: #7a5c4a !important; }
+        .text-gray-500 { color: #9a7a68 !important; }
+        .text-gray-400 { color: #b8a090 !important; }
+        .text-gray-300 { color: #cdb8a8 !important; }
+        .border-gray-200 { border-color: #e8d8c8 !important; }
+        .border-gray-100 { border-color: #f0e4d4 !important; }
+        .ring-1 { --tw-ring-color: #e8d8c8 !important; }
+        .hover\:bg-gray-50:hover  { background-color: #f8f1e8 !important; }
+        .hover\:bg-gray-200:hover { background-color: #e0d4c4 !important; }
+        .disabled\:bg-gray-200:disabled { background-color: #e0d4c4 !important; }
+        .disabled\:bg-gray-300:disabled { background-color: #d4c4b4 !important; }
+        .disabled\:text-gray-400:disabled { color: #b8a090 !important; }
+
+        /* ── 深色模式（暖色版）── */
+        html.dark body { background-color: #2c1a0e; color: #f5ede0; }
+        html.dark nav { background-color: #3c2415 !important; }
+        html.dark .bg-white  { background-color: #4a2d1a !important; }
+        html.dark .bg-gray-50 { background-color: #2c1a0e !important; }
+        html.dark .bg-gray-100 { background-color: #5c3d28 !important; }
+        html.dark .text-gray-800 { color: #f5ede0 !important; }
+        html.dark .text-gray-700 { color: #ede3d6 !important; }
+        html.dark .text-gray-600 { color: #d4c4b4 !important; }
+        html.dark .text-gray-500 { color: #c0aa96 !important; }
+        html.dark .text-gray-400 { color: #a89684 !important; }
+        html.dark .text-gray-300 { color: #8a7666 !important; }
+        html.dark .text-blue-600 { color: #e8b878 !important; }
+        html.dark .text-blue-500 { color: #d4a070 !important; }
+        html.dark .text-blue-400 { color: #c8956a !important; }
+        html.dark .text-blue-300 { color: #b8856a !important; }
+        html.dark .border-gray-200 { border-color: #5c3d28 !important; }
+        html.dark .border-gray-100 { border-color: #3c2415 !important; }
+        html.dark .border-b { border-color: #5c3d28 !important; }
+        html.dark .border-dashed { border-color: #5c3d28 !important; }
+        html.dark .ring-1 { --tw-ring-color: #5c3d28 !important; }
+        html.dark input, html.dark textarea { background-color: #2c1a0e !important; color: #f5ede0 !important; }
+        html.dark input::placeholder, html.dark textarea::placeholder { color: #a89684 !important; }
+        html.dark .disabled\:text-gray-400:disabled { color: #8a7666 !important; }
+        html.dark .disabled\:bg-gray-200:disabled { background-color: #3c2815 !important; }
+        html.dark .menu-card-active { background-color: #5c3020 !important; }
+        html.dark .hover\:bg-gray-50:hover { background-color: #3c2815 !important; }
+
         .order-row-grid { display: grid; grid-template-columns: 1fr 3rem 4rem 5rem 1.75rem; gap: 0.5rem; align-items: center; }
     </style>
 </head>
 <body class="pb-6">
 
     <nav class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <h1 class="text-xl font-bold text-blue-600 flex items-center">
                 <span class="mr-2">🗃️</span> 豬仔養成計畫
             </h1>
             <div class="flex items-center space-x-4">
-                <button onclick="switchView('user')" id="btn-user" class="text-sm font-medium tab-active py-1">我要點餐</button>
-                <button onclick="switchView('admin')" id="btn-admin" class="text-sm font-medium text-gray-500 py-1">菜單管理</button>
-                <button onclick="switchView('summary')" id="btn-summary" class="text-sm font-medium text-gray-500 py-1">訂單統計</button>
+                <button onclick="switchView('user')" id="btn-user" class="text-sm font-medium tab-active py-1">🍽️ 我要點餐</button>
+                <button onclick="switchView('admin')" id="btn-admin" class="text-sm font-medium text-gray-500 py-1">📋 菜單管理</button>
+                <button onclick="switchView('summary')" id="btn-summary" class="text-sm font-medium text-gray-500 py-1">📊 訂單統計</button>
                 <button id="dark-toggle" onclick="toggleDark()" class="text-lg leading-none">🌙</button>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto p-4">
+    <main class="max-w-7xl mx-auto p-4">
 
         <!-- View: User (點餐) -->
         <section id="view-user" class="block">
@@ -131,6 +181,16 @@
                         <label class="text-xs font-bold text-gray-400 mb-1 block">聯絡電話 <span class="font-normal text-gray-300">（選填）</span></label>
                         <input type="tel" id="new-menu-phone" class="w-full p-2 border-b outline-none focus:border-blue-500 text-sm" placeholder="例：02-1234-5678">
                     </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 mb-1 block">營業時間 <span class="font-normal text-gray-300">（選填）</span></label>
+                            <input type="text" id="new-menu-hours" class="w-full p-2 border-b outline-none focus:border-blue-500 text-sm" placeholder="例：10:00–21:00">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 mb-1 block">公休日 <span class="font-normal text-gray-300">（選填）</span></label>
+                            <input type="text" id="new-menu-closed" class="w-full p-2 border-b outline-none focus:border-blue-500 text-sm" placeholder="例：週日">
+                        </div>
+                    </div>
                     <div>
                         <label class="text-xs font-bold text-gray-400 mb-1 block">店家備注 <span class="font-normal text-gray-300">（選填）</span></label>
                         <input type="text" id="new-menu-note" class="w-full p-2 border-b outline-none focus:border-blue-500 text-sm" placeholder="例：滿200外送、最低消費300">
@@ -184,8 +244,13 @@
         let activeMenuTab = null;
         let summaryTab = null;
         let summaryMenuTitles = [];
-        let expandedOrders = new Set();
         let changeInputTimers = {};
+        let aggregateMode = false;
+
+        function toggleAggregate() {
+            aggregateMode = !aggregateMode;
+            renderSummary();
+        }
 
         if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
 
@@ -193,6 +258,10 @@
             const isDark = document.documentElement.classList.toggle('dark');
             localStorage.setItem('darkMode', isDark ? '1' : '0');
             document.getElementById('dark-toggle').innerText = isDark ? '☀️' : '🌙';
+        }
+
+        function menuEmoji(category) {
+            return { '早餐': '🍳', '午餐': '🍱', '晚餐': '🍲', '飲料': '☕', '點心': '🍡', '宵夜': '🌙', '咖啡': '☕' }[category] || '🍴';
         }
 
         function resolveActiveMenus() {
@@ -236,7 +305,8 @@
                 document.getElementById(`btn-${v}`).classList.add('text-gray-500');
             });
             document.getElementById(`view-${view}`).classList.remove('hidden');
-            document.getElementById(`btn-${view}`).classList.add('tab-active', 'text-blue-600');
+            document.getElementById(`btn-${view}`).classList.remove('text-gray-500');
+            document.getElementById(`btn-${view}`).classList.add('tab-active');
             if (view === 'summary') renderSummary();
         }
 
@@ -271,8 +341,10 @@
             try {
                 const id = editingMenuId !== null ? editingMenuId : Date.now();
                 const phone = document.getElementById('new-menu-phone').value.trim() || null;
+                const hours = document.getElementById('new-menu-hours').value.trim() || null;
+                const closedDays = document.getElementById('new-menu-closed').value.trim() || null;
                 const note = document.getElementById('new-menu-note').value.trim() || null;
-                const data = { id, title, category, phone, note, imageData: currentImageData || null };
+                const data = { id, title, category, phone, hours, closedDays, note, imageData: currentImageData || null };
                 if (editingMenuId === null) data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                 await db.collection('menus').doc(String(id)).set(data);
                 cancelEdit();
@@ -290,6 +362,8 @@
             document.getElementById('new-menu-title').value = menu.title;
             document.getElementById('new-menu-category').value = menu.category || '';
             document.getElementById('new-menu-phone').value = menu.phone || '';
+            document.getElementById('new-menu-hours').value = menu.hours || '';
+            document.getElementById('new-menu-closed').value = menu.closedDays || '';
             document.getElementById('new-menu-note').value = menu.note || '';
             currentImageData = menu.imageData || null;
             if (currentImageData) {
@@ -323,6 +397,8 @@
             document.getElementById('new-menu-title').value = '';
             document.getElementById('new-menu-category').value = '';
             document.getElementById('new-menu-phone').value = '';
+            document.getElementById('new-menu-hours').value = '';
+            document.getElementById('new-menu-closed').value = '';
             document.getElementById('new-menu-note').value = '';
             document.getElementById('image-preview').classList.add('hidden');
             document.getElementById('upload-placeholder').classList.remove('hidden');
@@ -386,6 +462,8 @@
                                 <span class="text-[10px] text-gray-400">${menu.category || '未分類'}</span>
                                 ${menu.phone ? `<a href="tel:${menu.phone}" class="text-[10px] text-gray-400 hover:text-blue-500">📞 ${menu.phone}</a>` : ''}
                             </div>
+                            ${menu.hours ? `<div class="text-[10px] text-gray-400 mt-0.5 truncate">🕐 ${menu.hours}</div>` : ''}
+                            ${menu.closedDays ? `<div class="text-[10px] text-gray-400 mt-0.5 truncate">🚫 ${menu.closedDays}</div>` : ''}
                             ${menu.note ? `<div class="text-[10px] text-orange-500 mt-0.5 truncate">📝 ${menu.note}</div>` : ''}
                             ${getMenuDateStr(menu) ? `<div class="text-[10px] text-gray-300 mt-0.5">上傳：${getMenuDateStr(menu)}</div>` : ''}
                         </div>
@@ -450,7 +528,7 @@
                 const card = document.getElementById(`menu-card-${m.id}`);
                 if (card) card.classList.toggle('hidden', m.id !== id);
                 const tab = document.getElementById(`menu-tab-${m.id}`);
-                if (tab) tab.className = `text-sm font-black px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${m.id === id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`;
+                if (tab) { tab.className = `text-sm font-black px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${m.id === id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`; tab.textContent = `${menuEmoji(m.category)} ${m.title}`; }
             });
         }
 
@@ -476,7 +554,7 @@
                     tab.id = `menu-tab-${menu.id}`;
                     tab.onclick = () => switchMenuTab(menu.id);
                     tab.className = `text-sm font-black px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${menu.id === activeMenuTab ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`;
-                    tab.textContent = menu.title;
+                    tab.textContent = `${menuEmoji(menu.category)} ${menu.title}`;
                     tabsEl.appendChild(tab);
                 });
             } else {
@@ -498,6 +576,8 @@
                                     <span class="text-sm font-black text-gray-800">${menu.title}</span>
                                     ${menu.phone ? `<a href="tel:${menu.phone}" class="text-xs text-gray-500">📞 ${menu.phone}</a>` : ''}
                                 </div>
+                                ${menu.hours ? `<div class="text-[11px] text-gray-500 mt-0.5">🕐 ${menu.hours}</div>` : ''}
+                                ${menu.closedDays ? `<div class="text-[11px] text-gray-500 mt-0.5">🚫 ${menu.closedDays}</div>` : ''}
                                 ${menu.note ? `<div class="text-[11px] text-orange-500 font-bold mt-0.5">📝 ${menu.note}</div>` : ''}
                             </div>
                             ${menu.imageData ? `<button onclick="viewMenuImage(activeMenus.find(m=>m.id===${menu.id}).imageData)" class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-xs px-2 py-1 rounded-full font-bold text-gray-600 shadow-sm">🔍 放大</button>` : ''}
@@ -591,7 +671,7 @@
                 (o.orders || []).forEach(item => {
                     const mt = item.menuTitle || '未分類';
                     if (!byMenu[mt]) byMenu[mt] = [];
-                    byMenu[mt].push({ user: o.user, text: item.text });
+                    byMenu[mt].push({ user: o.user, text: item.text, rows: item.rows });
                     menuTotals[mt] = (menuTotals[mt] || 0) + (item.subtotal || 0);
                 });
             });
@@ -606,25 +686,84 @@
                 aggHtml += `<div class="bg-white/10 rounded-2xl p-1 flex gap-1 flex-wrap mb-5">`;
                 summaryMenuTitles.forEach((title, idx) => {
                     const active = title === summaryTab;
-                    aggHtml += `<button onclick="setSummaryTab(${idx})" class="text-sm font-black px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${active ? 'bg-blue-500 text-white shadow-md' : 'text-gray-400 hover:text-white'}">${title}</button>`;
+                    aggHtml += `<button onclick="setSummaryTab(${idx})" class="text-sm font-black px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${active ? 'bg-blue-500 text-white shadow-md' : 'text-gray-400 hover:text-white'}">${menuEmoji(menuLibrary.find(m=>m.title===title)?.category)} ${title}</button>`;
                 });
                 aggHtml += `</div>`;
             }
 
             summaryMenuTitles.forEach(menuTitle => {
                 const entries = byMenu[menuTitle];
-                const allLines = [];
-                entries.forEach(e => e.text.split('\n').forEach(line => { if (line.trim()) allLines.push(line.trim()); }));
-                allLines.sort((a, b) => (a[0] || '').localeCompare(b[0] || '', 'zh-TW'));
                 const visible = !multiMenu || menuTitle === summaryTab;
                 aggHtml += `<div class="${visible ? '' : 'hidden'}">`;
-                aggHtml += `<div class="flex justify-between items-baseline mb-3">
-                    <div class="text-xs text-blue-400 font-bold tracking-widest uppercase">${multiMenu ? '' : menuTitle}</div>
+                aggHtml += `<div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <div class="text-xs text-blue-400 font-bold tracking-widest uppercase">${multiMenu ? '' : menuTitle}</div>
+                        <button onclick="toggleAggregate()" class="text-[11px] font-bold px-2.5 py-1 rounded-full transition-colors ${aggregateMode ? 'bg-blue-500 text-white' : 'bg-white/10 text-blue-300 hover:bg-white/20'}">
+                            ${aggregateMode ? '✓ 已合併相同項目' : '🔢 一鍵統計'}
+                        </button>
+                    </div>
                     ${menuTotals[menuTitle] ? `<div class="text-xs text-blue-300 font-bold">小計 NT$${menuTotals[menuTitle]}</div>` : ''}
                 </div>`;
-                allLines.forEach(line => {
-                    aggHtml += `<div class="border-b border-white/10 pb-2 mb-2"><div class="text-sm text-white/90">${line}</div></div>`;
-                });
+
+                aggHtml += `<div class="grid gap-3 pb-2 mb-2 border-b border-white/20 text-[11px] font-bold text-blue-400 uppercase tracking-wider" style="grid-template-columns: 1fr 4rem 6rem;">
+                    <div>品項</div>
+                    <div class="text-center">數量</div>
+                    <div class="text-right">金額</div>
+                </div>`;
+
+                if (aggregateMode) {
+                    const groups = {};
+                    entries.forEach(e => {
+                        if (e.rows) {
+                            e.rows.forEach(r => {
+                                const key = r.item;
+                                if (!groups[key]) groups[key] = { item: r.item, notes: [], qty: 0, total: 0 };
+                                groups[key].qty += r.qty || 1;
+                                groups[key].total += (parseInt(r.price) || 0) * (r.qty || 1);
+                                if (r.note) {
+                                    const noteText = (r.qty || 1) > 1 ? `${r.note} ×${r.qty}` : r.note;
+                                    groups[key].notes.push(noteText);
+                                }
+                            });
+                        }
+                    });
+                    Object.values(groups).sort((a, b) => a.item.localeCompare(b.item, 'zh-TW')).forEach(g => {
+                        aggHtml += `<div class="grid gap-3 pb-2 mb-2 border-b border-white/10 items-start" style="grid-template-columns: 1fr 4rem 6rem;">
+                            <div class="text-sm text-white/90 min-w-0">
+                                <div class="font-bold">${g.item}</div>
+                                ${g.notes.length > 0 ? `<ul class="mt-1 text-xs text-gray-400 space-y-0.5">${g.notes.map(n => `<li class="pl-3 relative">• ${n}</li>`).join('')}</ul>` : ''}
+                            </div>
+                            <div class="text-sm font-black text-blue-300 text-center">×${g.qty}</div>
+                            <div class="text-sm font-black text-blue-300 text-right whitespace-nowrap">${g.total ? `NT$${g.total}` : '—'}</div>
+                        </div>`;
+                    });
+                } else {
+                    const lines = [];
+                    entries.forEach(e => {
+                        if (e.rows) {
+                            e.rows.forEach(r => {
+                                lines.push({ item: r.item, qty: r.qty || 1, price: parseInt(r.price) || 0, note: r.note || '' });
+                            });
+                        } else if (e.text) {
+                            e.text.split('\n').forEach(l => { if (l.trim()) lines.push({ legacy: true, text: l.trim() }); });
+                        }
+                    });
+                    lines.sort((a, b) => ((a.item || a.text) || '').localeCompare((b.item || b.text) || '', 'zh-TW'));
+                    lines.forEach(l => {
+                        if (l.legacy) {
+                            aggHtml += `<div class="border-b border-white/10 pb-2 mb-2"><div class="text-sm text-white/90">${l.text}</div></div>`;
+                        } else {
+                            const totalPrice = l.price * l.qty;
+                            aggHtml += `<div class="grid gap-3 pb-2 mb-2 border-b border-white/10 items-center" style="grid-template-columns: 1fr 4rem 6rem;">
+                                <div class="text-sm text-white/90 min-w-0">
+                                    <span>${l.item}</span>${l.note ? `<span class="text-xs text-gray-400 ml-1">（${l.note}）</span>` : ''}
+                                </div>
+                                <div class="text-sm text-blue-300 text-center">${l.qty > 1 ? `×${l.qty}` : '—'}</div>
+                                <div class="text-sm font-black text-blue-300 text-right whitespace-nowrap">${totalPrice ? `$${totalPrice}` : '—'}</div>
+                            </div>`;
+                        }
+                    });
+                }
                 aggHtml += '</div>';
             });
 
@@ -642,54 +781,58 @@
             let indivOrders = allOrders;
             if (multiMenu) indivOrders = allOrders.filter(o => (o.orders || []).some(item => item.menuTitle === summaryTab));
 
-            let ordersHtml = '<div class="space-y-2">';
+            let ordersHtml = '<div class="grid grid-cols-2 md:grid-cols-5 gap-2 mt-3">';
             indivOrders.forEach(o => {
                 const paid = o.paid || false;
-                const expanded = expandedOrders.has(o._id);
                 const list = o.orders || [];
                 const displayList = multiMenu ? list.filter(item => item.menuTitle === summaryTab) : list;
+                const flatRows = displayList.flatMap(item => {
+                    const realIdx = list.indexOf(item);
+                    if (item.rows) return item.rows.map((row, rIdx) => ({ type: 'row', row, realIdx, rIdx }));
+                    return [{ type: 'text', item, realIdx }];
+                });
                 ordersHtml += `<div class="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
                     <div class="p-3">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2 cursor-pointer flex-1 min-w-0" onclick="toggleOrderCollapse('${o._id}')">
-                                <span class="text-sm font-black text-gray-800 truncate">${o.user}</span>
-                                ${o.grandTotal ? `<span class="text-blue-600 font-black text-sm whitespace-nowrap">NT$ ${o.grandTotal}</span>` : ''}
-                                <span class="text-[10px] text-gray-400 whitespace-nowrap">${o.time || ''}</span>
-                                <span class="text-gray-300 text-xs">${expanded ? '▲' : '▼'}</span>
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="min-w-0 flex-1">
+                                <div class="text-base font-black text-gray-800 truncate">${o.user}</div>
+                                <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                    ${o.grandTotal ? `<span class="text-sm font-black" style="color:#1a6b4a">NT$ ${o.grandTotal}</span>` : ''}
+                                    <span class="text-[11px] text-gray-400">${o.time || ''}</span>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                                <button onclick="togglePayment('${o._id}', ${paid})" class="text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-500'}">
-                                    ${paid ? '✓ 已收款' : '未收款'}
+                            <div class="flex items-center gap-1 flex-shrink-0 ml-1">
+                                <button onclick="togglePayment('${o._id}', ${paid})" class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-500'}">
+                                    ${paid ? '✓收' : '未收'}
                                 </button>
-                                <button onclick="deleteOrder('${o._id}')" class="text-xs text-red-300 hover:text-red-500 ml-1">✕</button>
+                                <button onclick="deleteOrder('${o._id}')" class="text-sm text-red-300 hover:text-red-500">✕</button>
                             </div>
                         </div>
-                        ${paid ? `<div class="flex items-center gap-2 mt-2 flex-wrap">
+                        ${paid ? `<div class="flex items-center gap-2 flex-wrap">
                             <span class="text-[11px] text-gray-400">找零計算</span>
                             <input type="number" placeholder="收款金額" value="${o.receivedAmount || ''}" class="w-24 text-xs p-1.5 border border-gray-200 rounded-lg text-center outline-none focus:border-green-400" oninput="calcChange(this, '${o._id}', ${o.grandTotal || 0})">
                             <span id="change-${o._id}" class="text-sm font-black ${o.receivedAmount > 0 ? (o.receivedAmount >= (o.grandTotal || 0) ? 'text-green-600' : 'text-red-500') : ''}">${o.receivedAmount > 0 ? (o.receivedAmount >= (o.grandTotal || 0) ? `找零 NT$${o.receivedAmount - (o.grandTotal || 0)}` : `不足 NT$${(o.grandTotal || 0) - o.receivedAmount}`) : ''}</span>
-                            ${o.receivedAmount > 0 && o.receivedAmount >= (o.grandTotal || 0) ? `<button onclick="toggleChangeGiven('${o._id}', ${o.changeGiven || false})" class="text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${o.changeGiven ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">${o.changeGiven ? '✓ 已找零' : '找零'}</button>` : ''}
+                            ${o.receivedAmount > 0 && o.receivedAmount >= (o.grandTotal || 0) ? `<button onclick="toggleChangeGiven('${o._id}', ${o.changeGiven || false})" class="text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${o.changeGiven ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">${o.changeGiven ? '✓ 已找零' : '找零'}</button>` : ''}
                         </div>` : ''}
                     </div>
-                    ${expanded ? `<div class="border-t border-gray-100 px-3 pb-3 pt-2 space-y-2">
-                        ${displayList.map(item => {
-                            const realIdx = list.indexOf(item);
-                            return `<div class="bg-white p-2.5 rounded-lg border border-gray-100">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-[11px] font-bold text-blue-500">${item.menuTitle}</span>
-                                    ${item.subtotal ? `<span class="text-xs font-bold text-gray-700">NT$ ${item.subtotal}</span>` : ''}
-                                </div>
-                                ${item.rows ? item.rows.map((row, rIdx) => `<div class="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
-                                    <span class="text-sm text-gray-600">${row.item}${row.qty > 1 ? ` x${row.qty}` : ''}${row.note ? `（${row.note}）` : ''}</span>
-                                    <div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                                        <span class="text-sm font-bold text-gray-700">${row.price ? '$' + row.price : ''}</span>
-                                        <button onclick="editRowPrice('${o._id}', ${realIdx}, ${rIdx})" class="text-[11px] text-blue-400 hover:text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">✏️</button>
+                    ${flatRows.length > 0 ? `<div class="border-t border-gray-100 px-3 pb-2 pt-2 grid grid-cols-2 gap-x-2 gap-y-0">
+                        ${flatRows.map(entry => {
+                            if (entry.type === 'row') {
+                                const { row, realIdx, rIdx } = entry;
+                                return `<div class="py-1.5 border-b border-gray-100 min-w-0">
+                                    <div class="text-xs text-gray-700 truncate leading-snug">${row.item}${row.qty > 1 ? ` ×${row.qty}` : ''}${row.note ? `（${row.note}）` : ''}</div>
+                                    <div class="flex items-center gap-1 mt-0.5">
+                                        <span class="text-xs font-black" style="color:#1a6b4a">${row.price ? '$' + row.price : '—'}</span>
+                                        <button onclick="editRowPrice('${o._id}', ${realIdx}, ${rIdx})" class="text-[10px] px-0.5 rounded leading-none" style="color:#a07030">✏️</button>
                                     </div>
-                                </div>`).join('') : `<div class="flex items-start justify-between gap-2">
-                                    <div class="text-sm text-gray-600 whitespace-pre-line">${item.text}</div>
-                                    <button onclick="editOrderSubtotal('${o._id}', ${realIdx})" class="text-[11px] text-blue-400 hover:text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0">✏️ 改金額</button>
-                                </div>`}
-                            </div>`;
+                                </div>`;
+                            } else {
+                                const { item, realIdx } = entry;
+                                return `<div class="col-span-2 flex items-start justify-between gap-1 py-1.5 border-b border-gray-100">
+                                    <div class="text-xs text-gray-700 truncate">${item.text.split('\n').join('、')}</div>
+                                    <button onclick="editOrderSubtotal('${o._id}', ${realIdx})" class="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0" style="color:#a07030;background:#fdf0d8">✏️</button>
+                                </div>`;
+                            }
                         }).join('')}
                     </div>` : ''}
                 </div>`;
@@ -760,12 +903,6 @@
             );
             const grandTotal = newOrders.reduce((s, o) => s + (o.subtotal || 0), 0);
             await db.collection('orders').doc(orderId).update({ orders: newOrders, grandTotal });
-        }
-
-        function toggleOrderCollapse(id) {
-            if (expandedOrders.has(id)) expandedOrders.delete(id);
-            else expandedOrders.add(id);
-            renderSummary();
         }
 
         function calcChange(input, orderId, total) {
