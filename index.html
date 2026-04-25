@@ -84,7 +84,7 @@
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-xl font-black italic">訂單統計總覽</h2>
-                    <button onclick="clearOrders()" class="text-xs font-bold text-red-500 bg-red-50 px-3 py-1 rounded-full">清空紀錄</button>
+                    <button onclick="clearOrders()" class="text-xs font-bold text-red-500 bg-red-50 px-3 py-1 rounded-full">清除全部</button>
                 </div>
                 <div id="order-summary-content"></div>
             </div>
@@ -640,6 +640,9 @@
                     <span class="text-xl font-black text-white">NT$ ${overallTotal}</span>
                 </div>`;
             }
+            aggHtml += `<div class="mt-3 pt-3 border-t border-white/10 flex justify-end">
+                <button onclick="clearMenuOrders()" class="text-xs text-red-400 hover:text-red-300 font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full transition-colors">🗑️ 清除「${summaryTab}」訂單</button>
+            </div>`;
             aggHtml += '</div>';
 
             let indivOrders = allOrders;
@@ -773,6 +776,24 @@
             const change = (parseInt(input.value) || 0) - total;
             span.textContent = change >= 0 ? `找零 NT$${change}` : `不足 NT$${Math.abs(change)}`;
             span.className = `text-sm font-black ${change >= 0 ? 'text-green-600' : 'text-red-500'}`;
+        }
+
+        async function clearMenuOrders() {
+            if (!summaryTab) return;
+            if (!confirm(`確定清除「${summaryTab}」的所有訂單？\n其他店家的訂單不受影響。`)) return;
+            const snapshot = await db.collection('orders').get();
+            const batch = db.batch();
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                const newOrders = (data.orders || []).filter(item => item.menuTitle !== summaryTab);
+                if (newOrders.length === 0) {
+                    batch.delete(doc.ref);
+                } else {
+                    const grandTotal = newOrders.reduce((s, item) => s + (item.subtotal || 0), 0);
+                    batch.update(doc.ref, { orders: newOrders, grandTotal });
+                }
+            });
+            await batch.commit();
         }
 
         function clearOrders() {
