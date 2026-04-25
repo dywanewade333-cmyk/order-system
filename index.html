@@ -521,26 +521,26 @@
                 card.className = `bg-white rounded-xl border transition-all overflow-hidden flex flex-col ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
                 card.innerHTML = `
                     ${menu.imageData
-                        ? `<img src="${menu.imageData}" class="w-full h-28 object-cover cursor-pointer" onclick="viewMenuImage(menuLibrary.find(m=>m.id===${menu.id}).imageData)">`
-                        : `<div class="w-full h-28 bg-gray-100 flex items-center justify-center text-gray-300 text-3xl">📋</div>`}
-                    <div class="p-2 flex flex-col flex-1">
-                        <div class="mb-1 flex-1">
-                            <h3 class="font-bold text-gray-800 text-sm leading-snug">${menu.title}</h3>
-                            <div class="flex items-center justify-between">
-                                <span class="text-[10px] text-gray-400">${menu.category || '未分類'}</span>
-                                ${menu.phone ? `<a href="tel:${menu.phone}" class="text-[10px] text-gray-400 hover:text-blue-500">📞 ${menu.phone}</a>` : ''}
+                        ? `<img src="${menu.imageData}" class="w-full h-32 object-cover cursor-pointer" onclick="viewMenuImage(menuLibrary.find(m=>m.id===${menu.id}).imageData)">`
+                        : `<div class="w-full h-32 bg-gray-100 flex items-center justify-center text-gray-300 text-4xl">📋</div>`}
+                    <div class="p-3 flex flex-col flex-1">
+                        <div class="mb-2 flex-1 space-y-1">
+                            <h3 class="font-bold text-gray-800 text-base leading-snug">${menu.title}</h3>
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <span class="text-xs text-gray-500">${menu.category || '未分類'}</span>
+                                ${menu.phone ? `<a href="tel:${menu.phone}" class="text-xs text-gray-500 hover:text-blue-500">📞 ${menu.phone}</a>` : ''}
                             </div>
-                            ${menu.hours ? `<div class="text-[10px] text-gray-400 mt-0.5 truncate">🕐 ${menu.hours}</div>` : ''}
-                            ${menu.closedDays ? `<div class="text-[10px] text-gray-400 mt-0.5 truncate">🚫 ${menu.closedDays}</div>` : ''}
-                            ${menu.note ? `<div class="text-[10px] text-orange-500 mt-0.5 truncate">📝 ${menu.note}</div>` : ''}
-                            ${getMenuDateStr(menu) ? `<div class="text-[10px] text-gray-300 mt-0.5">上傳：${getMenuDateStr(menu)}</div>` : ''}
+                            ${menu.hours ? `<div class="text-xs text-gray-500 truncate">🕐 ${menu.hours}</div>` : ''}
+                            ${menu.closedDays ? `<div class="text-xs text-gray-500 truncate">🚫 ${menu.closedDays}</div>` : ''}
+                            ${menu.note ? `<div class="text-xs text-orange-500 truncate">📝 ${menu.note}</div>` : ''}
+                            ${getMenuDateStr(menu) ? `<div class="text-xs text-gray-300">上傳：${getMenuDateStr(menu)}</div>` : ''}
                         </div>
                         <div class="flex gap-1 mt-2">
-                            <button onclick="toggleActiveMenu(${menu.id})" class="flex-1 text-[11px] py-1.5 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
+                            <button onclick="toggleActiveMenu(${menu.id})" class="flex-1 text-sm py-2 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
                                 ${isActive ? '✓ 使用中' : '啟用'}
                             </button>
-                            <button onclick="editMenu(${menu.id})" class="px-2 text-blue-300 text-sm">✏️</button>
-                            <button onclick="deleteFromLibrary(${menu.id})" class="px-2 text-red-300 text-sm">🗑️</button>
+                            <button onclick="editMenu(${menu.id})" class="px-2.5 text-blue-300 text-base">✏️</button>
+                            <button onclick="deleteFromLibrary(${menu.id})" class="px-2.5 text-red-300 text-base">🗑️</button>
                         </div>
                     </div>
                 `;
