@@ -518,13 +518,13 @@
             filtered.forEach(menu => {
                 const isActive = activeMenuIds.includes(menu.id);
                 const card = document.createElement('div');
-                card.className = `bg-white rounded-xl border transition-all overflow-hidden ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
+                card.className = `bg-white rounded-xl border transition-all overflow-hidden flex flex-col ${isActive ? 'menu-card-active shadow-md' : 'border-gray-100'}`;
                 card.innerHTML = `
                     ${menu.imageData
                         ? `<img src="${menu.imageData}" class="w-full h-28 object-cover cursor-pointer" onclick="viewMenuImage(menuLibrary.find(m=>m.id===${menu.id}).imageData)">`
                         : `<div class="w-full h-28 bg-gray-100 flex items-center justify-center text-gray-300 text-3xl">📋</div>`}
-                    <div class="p-2">
-                        <div class="mb-1">
+                    <div class="p-2 flex flex-col flex-1">
+                        <div class="mb-1 flex-1">
                             <h3 class="font-bold text-gray-800 text-sm leading-snug">${menu.title}</h3>
                             <div class="flex items-center justify-between">
                                 <span class="text-[10px] text-gray-400">${menu.category || '未分類'}</span>
