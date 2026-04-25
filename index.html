@@ -98,6 +98,7 @@
                 <button onclick="switchView('admin')" id="btn-admin" class="text-sm font-medium text-gray-500 py-1">📋 菜單管理</button>
                 <button onclick="switchView('summary')" id="btn-summary" class="text-sm font-medium text-gray-500 py-1">📊 訂單統計</button>
                 <button onclick="switchView('calendar')" id="btn-calendar" class="text-sm font-medium text-gray-500 py-1">📅 菜單行事曆</button>
+                <button onclick="switchView('history')" id="btn-history" class="text-sm font-medium text-gray-500 py-1">📜 點餐歷史</button>
                 <button id="dark-toggle" onclick="toggleDark()" class="text-lg leading-none">🌙</button>
             </div>
         </div>
@@ -138,6 +139,17 @@
                     <p class="text-xs text-gray-400">點選每天的「+ 加店家」即可規劃</p>
                 </div>
                 <div id="calendar-content"></div>
+            </div>
+        </section>
+
+        <!-- View: History (歷史) -->
+        <section id="view-history" class="hidden">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-6 flex-wrap gap-2">
+                    <h2 class="text-xl font-black italic flex items-center"><span class="mr-2">📜</span>點餐歷史紀錄</h2>
+                    <p class="text-xs text-gray-400">點擊有紀錄的日期查看詳情</p>
+                </div>
+                <div id="history-content"></div>
             </div>
         </section>
 
@@ -220,8 +232,7 @@
     <div id="clear-modal" class="hidden fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-xs w-full text-center">
             <div class="text-5xl mb-4">🗑️</div>
-            <h3 class="text-lg font-black text-gray-800 mb-2">要確定清除喔！？</h3>
-            <p class="text-sm text-gray-400 mb-6">所有訂單紀錄將被永久刪除</p>
+            <h3 class="text-lg font-black text-gray-800 mb-6">要確定清除喔！？</h3>
             <div class="flex gap-3">
                 <button onclick="closeClearModal()" class="flex-1 py-3 rounded-xl font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">取消</button>
                 <button onclick="confirmClearOrders()" class="flex-1 py-3 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 transition-colors">確定清除</button>
@@ -231,6 +242,17 @@
 
     <div id="image-modal" class="hidden fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-4" onclick="closeImageModal()">
         <img id="modal-img" class="max-w-full max-h-full rounded-xl shadow-2xl object-contain">
+    </div>
+
+    <!-- History Day Modal -->
+    <div id="history-day-modal" class="hidden fixed inset-0 bg-black/60 z-[95] flex items-center justify-center p-4" onclick="closeHistoryDay(event)">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 max-h-[85vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="history-day-title" class="text-lg font-black text-gray-800">當日訂單</h3>
+                <button onclick="closeHistoryDay()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="history-day-content" class="overflow-y-auto flex-1"></div>
+        </div>
     </div>
 
     <!-- Calendar Pick Modal -->
@@ -328,6 +350,7 @@
             db.collection('orders').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
                 allOrders = snapshot.docs.map(d => ({ ...d.data(), _id: d.id }));
                 if (!document.getElementById('view-summary').classList.contains('hidden')) renderSummary();
+                if (!document.getElementById('view-history').classList.contains('hidden')) renderHistory();
             });
 
             db.doc('settings/menuCalendar').onSnapshot(doc => {
@@ -342,7 +365,7 @@
         }
 
         function switchView(view) {
-            ['user', 'admin', 'summary', 'calendar'].forEach(v => {
+            ['user', 'admin', 'summary', 'calendar', 'history'].forEach(v => {
                 document.getElementById(`view-${v}`).classList.add('hidden');
                 document.getElementById(`btn-${v}`).classList.remove('tab-active', 'text-blue-600');
                 document.getElementById(`btn-${v}`).classList.add('text-gray-500');
@@ -352,6 +375,7 @@
             document.getElementById(`btn-${view}`).classList.add('tab-active');
             if (view === 'summary') renderSummary();
             if (view === 'calendar') renderCalendar();
+            if (view === 'history') renderHistory();
         }
 
         function handleImageUpload(input) {
@@ -705,12 +729,13 @@
 
         function renderSummary() {
             const container = document.getElementById('order-summary-content');
-            if (allOrders.length === 0) { container.innerHTML = '<p class="text-center py-20 text-gray-400">無紀錄</p>'; return; }
+            const visibleOrders = allOrders.filter(o => !o.archived);
+            if (visibleOrders.length === 0) { container.innerHTML = '<p class="text-center py-20 text-gray-400">無紀錄</p>'; return; }
 
             const byMenu = {};
             const menuTotals = {};
             let overallTotal = 0;
-            allOrders.forEach(o => {
+            visibleOrders.forEach(o => {
                 overallTotal += computeOrderTotal(o);
                 (o.orders || []).forEach(item => {
                     const mt = item.menuTitle || '未分類';
@@ -824,7 +849,7 @@
             aggHtml += '</div>';
 
             const userTotals = {};
-            allOrders.forEach(o => {
+            visibleOrders.forEach(o => {
                 if (!userTotals[o.user]) userTotals[o.user] = { count: 0, total: 0, stores: new Set(), orders: [] };
                 userTotals[o.user].count++;
                 userTotals[o.user].total += computeOrderTotal(o);
@@ -879,8 +904,8 @@
             </div>`;
             rightHtml += '</div>';
 
-            let indivOrders = allOrders;
-            if (multiMenu) indivOrders = allOrders.filter(o => (o.orders || []).some(item => item.menuTitle === summaryTab));
+            let indivOrders = visibleOrders;
+            if (multiMenu) indivOrders = visibleOrders.filter(o => (o.orders || []).some(item => item.menuTitle === summaryTab));
 
             let ordersHtml = '<div class="grid grid-cols-2 md:grid-cols-5 gap-2 mt-3">';
             indivOrders.forEach(o => {
@@ -1071,17 +1096,20 @@
 
         async function clearMenuOrders() {
             if (!summaryTab) return;
-            if (!confirm(`確定清除「${summaryTab}」的所有訂單？\n其他店家的訂單不受影響。`)) return;
+            if (!confirm(`確定清除「${summaryTab}」的所有訂單？\n（會封存到歷史紀錄，不會永久刪除）`)) return;
             const snapshot = await db.collection('orders').get();
             const batch = db.batch();
             snapshot.docs.forEach(doc => {
                 const data = doc.data();
-                const newOrders = (data.orders || []).filter(item => item.menuTitle !== summaryTab);
-                if (newOrders.length === 0) {
-                    batch.delete(doc.ref);
+                if (data.archived) return;
+                const hasMenu = (data.orders || []).some(item => item.menuTitle === summaryTab);
+                if (!hasMenu) return;
+                const otherMenus = (data.orders || []).filter(item => item.menuTitle !== summaryTab);
+                if (otherMenus.length === 0) {
+                    batch.update(doc.ref, { archived: true });
                 } else {
-                    const grandTotal = newOrders.reduce((s, item) => s + (item.subtotal || 0), 0);
-                    batch.update(doc.ref, { orders: newOrders, grandTotal });
+                    const grandTotal = otherMenus.reduce((s, item) => s + (item.subtotal || 0), 0);
+                    batch.update(doc.ref, { orders: otherMenus, grandTotal });
                 }
             });
             await batch.commit();
@@ -1180,6 +1208,139 @@
             renderCalendarPickList();
         }
 
+        function renderHistory() {
+            const container = document.getElementById('history-content');
+            if (!container) return;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayKey = dateKey(today);
+
+            const ordersByDate = {};
+            allOrders.forEach(o => {
+                let d = null;
+                if (o.createdAt && o.createdAt.toDate) d = o.createdAt.toDate();
+                if (!d) return;
+                const k = dateKey(d);
+                if (!ordersByDate[k]) ordersByDate[k] = [];
+                ordersByDate[k].push(o);
+            });
+
+            const todayDow = today.getDay();
+            const lastSat = new Date(today);
+            lastSat.setDate(lastSat.getDate() + (6 - todayDow));
+            const startSun = new Date(lastSat);
+            startSun.setDate(startSun.getDate() - 27);
+
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            const weekColors = ['text-red-400', 'text-gray-500', 'text-gray-500', 'text-gray-500', 'text-gray-500', 'text-gray-500', 'text-blue-400'];
+
+            let html = '<div class="grid grid-cols-7 gap-2">';
+            weekdays.forEach((wd, i) => {
+                html += `<div class="text-center text-xs font-bold pb-1 ${weekColors[i]}">週${wd}</div>`;
+            });
+            html += '</div>';
+
+            html += '<div class="grid grid-cols-7 gap-2 mt-1">';
+            for (let i = 0; i < 28; i++) {
+                const d = new Date(startSun);
+                d.setDate(d.getDate() + i);
+                const k = dateKey(d);
+                const orders = ordersByDate[k] || [];
+                const isFuture = d > today;
+                const isToday = k === todayKey;
+                const dow = d.getDay();
+                const dowColor = dow === 0 ? 'text-red-400' : (dow === 6 ? 'text-blue-400' : 'text-gray-400');
+
+                if (isFuture) {
+                    html += `<div class="opacity-30 bg-gray-50 rounded-xl p-2 border border-gray-100 min-h-[100px]">
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-sm font-black text-gray-300">${d.getMonth()+1}/${d.getDate()}</span>
+                            <span class="text-[10px] text-gray-300">週${weekdays[dow]}</span>
+                        </div>
+                    </div>`;
+                    continue;
+                }
+
+                const total = orders.reduce((s, o) => s + computeOrderTotal(o), 0);
+                const userCount = new Set(orders.map(o => o.user)).size;
+                const hasOrders = orders.length > 0;
+
+                html += `<div class="${isToday ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-100' : 'bg-gray-50 border-gray-100'} rounded-xl p-2 border min-h-[100px] flex flex-col ${hasOrders ? 'cursor-pointer hover:bg-gray-100' : ''}" ${hasOrders ? `onclick="showHistoryDay('${k}')"` : ''}>
+                    <div class="flex items-baseline justify-between mb-1.5">
+                        <span class="text-sm font-black ${isToday ? 'text-blue-600' : 'text-gray-800'}">${d.getMonth()+1}/${d.getDate()}</span>
+                        <span class="text-[10px] ${dowColor}">週${weekdays[dow]}</span>
+                    </div>
+                    ${hasOrders ? `
+                        <div class="flex-1 flex flex-col justify-center">
+                            <div class="text-[10px] text-gray-500 mb-1">${orders.length} 筆 / ${userCount} 人</div>
+                            <div class="text-sm font-black" style="color:#1a6b4a">NT$ ${total}</div>
+                        </div>
+                    ` : '<div class="flex-1 flex items-center justify-center text-[10px] text-gray-300">無紀錄</div>'}
+                </div>`;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function showHistoryDay(k) {
+            const orders = allOrders.filter(o => {
+                if (!o.createdAt || !o.createdAt.toDate) return false;
+                return dateKey(o.createdAt.toDate()) === k;
+            });
+            const [y, m, d] = k.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            const total = orders.reduce((s, o) => s + computeOrderTotal(o), 0);
+            document.getElementById('history-day-title').innerText = `📅 ${m}/${d}（週${weekdays[dateObj.getDay()]}） · ${orders.length} 筆 NT$ ${total}`;
+
+            const content = document.getElementById('history-day-content');
+            if (orders.length === 0) { content.innerHTML = '<p class="text-center py-10 text-gray-400">無紀錄</p>'; }
+            else {
+                let html = '<div class="space-y-3">';
+                orders.forEach(o => {
+                    const orderTotal = computeOrderTotal(o);
+                    html += `<div class="bg-gray-50 rounded-xl border border-gray-100 p-3">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="min-w-0 flex-1">
+                                <div class="text-base font-black text-gray-800">${o.user}</div>
+                                <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                    ${orderTotal ? `<span class="text-sm font-black" style="color:#1a6b4a">NT$ ${orderTotal}</span>` : ''}
+                                    <span class="text-[11px] text-gray-400">${o.time || ''}</span>
+                                    ${o.paid ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">✓ 已收</span>` : ''}
+                                </div>
+                            </div>
+                        </div>`;
+                    (o.orders || []).forEach(item => {
+                        html += `<div class="border-t border-gray-100 pt-2 mt-2">
+                            <div class="text-xs font-bold text-gray-500 mb-1.5">${menuEmoji((menuLibrary.find(mm => mm.title === item.menuTitle) || {}).category)} ${item.menuTitle || '未分類'}</div>`;
+                        if (item.rows && item.rows.length) {
+                            html += '<div class="grid grid-cols-2 gap-x-3 gap-y-1">';
+                            item.rows.forEach(r => {
+                                const rowTotal = (parseInt(r.price) || 0) * (r.qty || 1);
+                                html += `<div class="text-xs text-gray-700 flex justify-between">
+                                    <span class="truncate">${r.item}${r.qty > 1 ? ` ×${r.qty}` : ''}${r.note ? `（${r.note}）` : ''}</span>
+                                    <span class="font-bold whitespace-nowrap" style="color:#1a6b4a">${rowTotal ? `$${rowTotal}` : '—'}</span>
+                                </div>`;
+                            });
+                            html += '</div>';
+                        } else if (item.text) {
+                            html += `<div class="text-xs text-gray-700 whitespace-pre-line">${item.text}</div>`;
+                        }
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                });
+                html += '</div>';
+                content.innerHTML = html;
+            }
+            document.getElementById('history-day-modal').classList.remove('hidden');
+        }
+
+        function closeHistoryDay(e) {
+            if (e && e.target !== document.getElementById('history-day-modal') && e.target !== undefined) return;
+            document.getElementById('history-day-modal').classList.add('hidden');
+        }
+
         async function removeFromCalendar(k, id) {
             const newList = (menuCalendar[k] || []).filter(i => i !== id);
             const newCal = { ...menuCalendar };
@@ -1200,7 +1361,9 @@
             closeClearModal();
             const snapshot = await db.collection('orders').get();
             const batch = db.batch();
-            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+            snapshot.docs.forEach(doc => {
+                if (!doc.data().archived) batch.update(doc.ref, { archived: true });
+            });
             await batch.commit();
         }
     </script>
