@@ -266,6 +266,15 @@
             return { '早餐': '🍳', '午餐': '🍱', '晚餐': '🍲', '飲料': '☕', '點心': '🍡', '宵夜': '🌙', '咖啡': '☕' }[category] || '🍴';
         }
 
+        function computeItemSubtotal(item) {
+            if (item.rows && item.rows.length) return item.rows.reduce((s, r) => s + (parseInt(r.price) || 0) * (r.qty || 1), 0);
+            return 0;
+        }
+
+        function computeOrderTotal(o) {
+            return (o.orders || []).reduce((s, item) => s + computeItemSubtotal(item), 0);
+        }
+
         function resolveActiveMenus() {
             activeMenus = activeMenuIds.map(id => menuLibrary.find(m => m.id === id)).filter(Boolean);
         }
@@ -669,12 +678,12 @@
             const menuTotals = {};
             let overallTotal = 0;
             allOrders.forEach(o => {
-                overallTotal += o.grandTotal || 0;
+                overallTotal += computeOrderTotal(o);
                 (o.orders || []).forEach(item => {
                     const mt = item.menuTitle || '未分類';
                     if (!byMenu[mt]) byMenu[mt] = [];
                     byMenu[mt].push({ user: o.user, text: item.text, rows: item.rows });
-                    menuTotals[mt] = (menuTotals[mt] || 0) + (item.subtotal || 0);
+                    menuTotals[mt] = (menuTotals[mt] || 0) + computeItemSubtotal(item);
                 });
             });
 
@@ -775,7 +784,7 @@
             allOrders.forEach(o => {
                 if (!userTotals[o.user]) userTotals[o.user] = { count: 0, total: 0, stores: new Set(), orders: [] };
                 userTotals[o.user].count++;
-                userTotals[o.user].total += o.grandTotal || 0;
+                userTotals[o.user].total += computeOrderTotal(o);
                 userTotals[o.user].orders.push(o);
                 (o.orders || []).forEach(item => userTotals[o.user].stores.add(item.menuTitle || '未分類'));
             });
@@ -839,13 +848,14 @@
                     if (item.rows) return item.rows.map((row, rIdx) => ({ type: 'row', row, realIdx, rIdx }));
                     return [{ type: 'text', item, realIdx }];
                 });
+                const orderTotal = computeOrderTotal(o);
                 ordersHtml += `<div class="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
                     <div class="p-3">
                         <div class="flex items-start justify-between mb-2">
                             <div class="min-w-0 flex-1">
                                 <div class="text-base font-black text-gray-800 truncate">${o.user}</div>
                                 <div class="flex items-center gap-2 mt-1 flex-wrap">
-                                    ${o.grandTotal ? `<span class="text-sm font-black" style="color:#1a6b4a">NT$ ${o.grandTotal}</span>` : ''}
+                                    ${orderTotal ? `<span class="text-sm font-black" style="color:#1a6b4a">NT$ ${orderTotal}</span>` : ''}
                                     <span class="text-[11px] text-gray-400">${o.time || ''}</span>
                                 </div>
                             </div>
