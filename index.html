@@ -268,7 +268,7 @@
 
         function computeItemSubtotal(item) {
             if (item.rows && item.rows.length) return item.rows.reduce((s, r) => s + (parseInt(r.price) || 0) * (r.qty || 1), 0);
-            return 0;
+            return item.subtotal || 0;
         }
 
         function computeOrderTotal(o) {
@@ -682,7 +682,7 @@
                 (o.orders || []).forEach(item => {
                     const mt = item.menuTitle || '未分類';
                     if (!byMenu[mt]) byMenu[mt] = [];
-                    byMenu[mt].push({ user: o.user, text: item.text, rows: item.rows });
+                    byMenu[mt].push({ user: o.user, text: item.text, rows: item.rows, subtotal: computeItemSubtotal(item) });
                     menuTotals[mt] = (menuTotals[mt] || 0) + computeItemSubtotal(item);
                 });
             });
@@ -724,8 +724,9 @@
 
                 if (aggregateMode) {
                     const groups = {};
+                    const legacyEntries = [];
                     entries.forEach(e => {
-                        if (e.rows) {
+                        if (e.rows && e.rows.length) {
                             e.rows.forEach(r => {
                                 const key = r.item;
                                 if (!groups[key]) groups[key] = { item: r.item, notes: [], qty: 0, total: 0 };
@@ -736,6 +737,8 @@
                                     groups[key].notes.push(noteText);
                                 }
                             });
+                        } else if (e.text) {
+                            legacyEntries.push(e);
                         }
                     });
                     Object.values(groups).sort((a, b) => a.item.localeCompare(b.item, 'zh-TW')).forEach(g => {
@@ -746,6 +749,13 @@
                             </div>
                             <div class="text-sm font-black text-blue-300 text-center">×${g.qty}</div>
                             <div class="text-sm font-black text-blue-300 text-right whitespace-nowrap">${g.total ? `NT$${g.total}` : '—'}</div>
+                        </div>`;
+                    });
+                    legacyEntries.forEach(le => {
+                        aggHtml += `<div class="grid gap-3 pb-2 mb-2 border-b border-white/10 items-center" style="grid-template-columns: 1fr 4rem 6rem;">
+                            <div class="text-sm text-white/90 min-w-0 truncate" title="${le.text.replace(/"/g, '&quot;')}">${le.text.split('\n').join('、')}</div>
+                            <div class="text-sm text-gray-500 text-center">—</div>
+                            <div class="text-sm font-black text-blue-300 text-right whitespace-nowrap">${le.subtotal ? `NT$${le.subtotal}` : '—'}</div>
                         </div>`;
                     });
                 } else {
