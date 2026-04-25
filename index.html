@@ -141,6 +141,10 @@
                         <label class="text-xs font-bold text-gray-400 mb-1 block">聯絡電話 <span class="font-normal text-gray-300">（選填）</span></label>
                         <input type="tel" id="new-menu-phone" class="w-full p-2 border-b outline-none focus:border-blue-500 text-sm" placeholder="例：02-1234-5678">
                     </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 mb-1 block">店家備注 <span class="font-normal text-gray-300">（選填）</span></label>
+                        <input type="text" id="new-menu-note" class="w-full p-2 border-b outline-none focus:border-blue-500 text-sm" placeholder="例：滿200外送、最低消費300">
+                    </div>
                     <button id="save-btn" onclick="saveToDatabase()" class="mt-auto bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all flex items-center justify-center">
                         <span class="mr-2">💾</span> 儲存到資料庫
                     </button>
@@ -190,6 +194,7 @@
         let activeMenuTab = null;
         let summaryTab = null;
         let summaryMenuTitles = [];
+        let expandedOrders = new Set();
 
         if (localStorage.getItem('darkMode') === '1') document.documentElement.classList.add('dark');
 
@@ -276,7 +281,10 @@
             try {
                 const id = editingMenuId !== null ? editingMenuId : Date.now();
                 const phone = document.getElementById('new-menu-phone').value.trim() || null;
-                await db.collection('menus').doc(String(id)).set({ id, title, category, phone, imageData: currentImageData || null });
+                const note = document.getElementById('new-menu-note').value.trim() || null;
+                const data = { id, title, category, phone, note, imageData: currentImageData || null };
+                if (editingMenuId === null) data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection('menus').doc(String(id)).set(data);
                 cancelEdit();
                 alert('儲存成功！');
             } catch (e) {
@@ -292,6 +300,7 @@
             document.getElementById('new-menu-title').value = menu.title;
             document.getElementById('new-menu-category').value = menu.category || '';
             document.getElementById('new-menu-phone').value = menu.phone || '';
+            document.getElementById('new-menu-note').value = menu.note || '';
             currentImageData = menu.imageData || null;
             if (currentImageData) {
                 document.getElementById('image-preview').src = currentImageData;
@@ -324,6 +333,7 @@
             document.getElementById('new-menu-title').value = '';
             document.getElementById('new-menu-category').value = '';
             document.getElementById('new-menu-phone').value = '';
+            document.getElementById('new-menu-note').value = '';
             document.getElementById('image-preview').classList.add('hidden');
             document.getElementById('upload-placeholder').classList.remove('hidden');
             document.getElementById('form-title').innerHTML = '<span class="mr-2">➕</span> 新增菜單';
@@ -339,6 +349,12 @@
         function setLibCategoryFilter(cat) {
             libFilter.category = cat;
             renderLibrary();
+        }
+
+        function getMenuDateStr(menu) {
+            if (menu.createdAt && menu.createdAt.toDate) return menu.createdAt.toDate().toLocaleDateString('zh-TW');
+            if (typeof menu.id === 'number' && menu.id > 1600000000000) return new Date(menu.id).toLocaleDateString('zh-TW');
+            return '';
         }
 
         function renderLibrary() {
@@ -380,6 +396,8 @@
                                 <span class="text-[10px] text-gray-400">${menu.category || '未分類'}</span>
                                 ${menu.phone ? `<a href="tel:${menu.phone}" class="text-[10px] text-gray-400 hover:text-blue-500">📞 ${menu.phone}</a>` : ''}
                             </div>
+                            ${menu.note ? `<div class="text-[10px] text-orange-500 mt-0.5 truncate">📝 ${menu.note}</div>` : ''}
+                            ${getMenuDateStr(menu) ? `<div class="text-[10px] text-gray-300 mt-0.5">上傳：${getMenuDateStr(menu)}</div>` : ''}
                         </div>
                         <div class="flex gap-1 mt-2">
                             <button onclick="toggleActiveMenu(${menu.id})" class="flex-1 text-[11px] py-1.5 rounded-lg font-bold ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}">
@@ -485,9 +503,12 @@
                             ${menu.imageData
                                 ? `<img src="${menu.imageData}" class="w-full h-full object-cover cursor-pointer min-h-[200px]" onclick="viewMenuImage(activeMenus.find(m=>m.id===${menu.id}).imageData)">`
                                 : `<div class="w-full min-h-[200px] h-full bg-gray-100 flex items-center justify-center text-gray-300 text-6xl">📋</div>`}
-                            <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
-                                <span class="text-sm font-black text-gray-800">${menu.title}</span>
-                                ${menu.phone ? `<a href="tel:${menu.phone}" class="text-xs text-gray-500 ml-1">📞 ${menu.phone}</a>` : ''}
+                            <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-sm max-w-[70%]">
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <span class="text-sm font-black text-gray-800">${menu.title}</span>
+                                    ${menu.phone ? `<a href="tel:${menu.phone}" class="text-xs text-gray-500">📞 ${menu.phone}</a>` : ''}
+                                </div>
+                                ${menu.note ? `<div class="text-[11px] text-orange-500 font-bold mt-0.5">📝 ${menu.note}</div>` : ''}
                             </div>
                             ${menu.imageData ? `<button onclick="viewMenuImage(activeMenus.find(m=>m.id===${menu.id}).imageData)" class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-xs px-2 py-1 rounded-full font-bold text-gray-600 shadow-sm">🔍 放大</button>` : ''}
                         </div>
@@ -585,7 +606,7 @@
             if (!summaryTab || !summaryMenuTitles.includes(summaryTab)) summaryTab = summaryMenuTitles[0];
             const multiMenu = summaryMenuTitles.length > 1;
 
-            let aggHtml = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-6">`;
+            let aggHtml = `<div class="bg-gray-900 text-white p-6 rounded-2xl mb-4">`;
 
             if (multiMenu) {
                 aggHtml += `<div class="flex gap-2 flex-wrap mb-5">`;
@@ -621,28 +642,56 @@
             }
             aggHtml += '</div>';
 
-            let ordersHtml = '<div class="space-y-3">';
-            allOrders.forEach(o => {
+            let indivOrders = allOrders;
+            if (multiMenu) indivOrders = allOrders.filter(o => (o.orders || []).some(item => item.menuTitle === summaryTab));
+
+            let ordersHtml = '<div class="space-y-2">';
+            indivOrders.forEach(o => {
+                const paid = o.paid || false;
+                const expanded = expandedOrders.has(o._id);
                 const list = o.orders || [];
-                ordersHtml += `<div class="bg-gray-50 p-4 rounded-xl border">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <b class="text-gray-800">${o.user}</b>
-                            ${o.grandTotal ? `<span class="ml-2 text-blue-600 font-black">NT$ ${o.grandTotal}</span>` : ''}
+                const displayList = multiMenu ? list.filter(item => item.menuTitle === summaryTab) : list;
+                ordersHtml += `<div class="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
+                    <div class="p-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 cursor-pointer flex-1 min-w-0" onclick="toggleOrderCollapse('${o._id}')">
+                                <span class="text-sm font-black text-gray-800 truncate">${o.user}</span>
+                                ${o.grandTotal ? `<span class="text-blue-600 font-black text-sm whitespace-nowrap">NT$ ${o.grandTotal}</span>` : ''}
+                                <span class="text-[10px] text-gray-400 whitespace-nowrap">${o.time || ''}</span>
+                                <span class="text-gray-300 text-xs">${expanded ? '▲' : '▼'}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                                <button onclick="togglePayment('${o._id}', ${paid})" class="text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-500'}">
+                                    ${paid ? '✓ 已收款' : '未收款'}
+                                </button>
+                                <button onclick="deleteOrder('${o._id}')" class="text-xs text-red-300 hover:text-red-500 ml-1">✕</button>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-[10px] text-gray-400">${o.time || ''}</span>
-                            <button onclick="deleteOrder('${o._id}')" class="text-xs text-red-400 hover:text-red-600 font-bold">✕ 移除</button>
-                        </div>
+                        ${paid ? `<div class="flex items-center gap-2 mt-2">
+                            <span class="text-[11px] text-gray-400">找零計算</span>
+                            <input type="number" placeholder="收款金額" class="w-24 text-xs p-1.5 border border-gray-200 rounded-lg text-center outline-none focus:border-green-400" oninput="calcChange(this, '${o._id}', ${o.grandTotal || 0})">
+                            <span id="change-${o._id}" class="text-sm font-black"></span>
+                        </div>` : ''}
                     </div>
-                    ${list.map(item => `
-                        <div class="mt-1">
-                            <span class="text-xs font-bold text-blue-500">${item.menuTitle}</span>
-                            <div class="text-sm text-gray-600 whitespace-pre-line mt-0.5">${item.text}</div>
-                        </div>`).join('<hr class="my-2 border-gray-100">')}
+                    ${expanded ? `<div class="border-t border-gray-100 px-3 pb-3 pt-2 space-y-2">
+                        ${displayList.map(item => {
+                            const realIdx = list.indexOf(item);
+                            return `<div class="bg-white p-2.5 rounded-lg border border-gray-100">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-[11px] font-bold text-blue-500">${item.menuTitle}</span>
+                                    <div class="flex items-center gap-2">
+                                        ${item.subtotal ? `<span class="text-xs font-bold text-gray-700">NT$ ${item.subtotal}</span>` : ''}
+                                        <button onclick="editOrderSubtotal('${o._id}', ${realIdx})" class="text-[11px] text-blue-400 hover:text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">✏️ 改金額</button>
+                                    </div>
+                                </div>
+                                <div class="text-sm text-gray-600 whitespace-pre-line">${item.text}</div>
+                            </div>`;
+                        }).join('')}
+                    </div>` : ''}
                 </div>`;
             });
-            container.innerHTML = aggHtml + ordersHtml + '</div>';
+            ordersHtml += '</div>';
+            container.innerHTML = aggHtml + ordersHtml;
         }
 
         function viewMenuImage(src) {
@@ -658,6 +707,40 @@
         async function deleteOrder(id) {
             if (!confirm("確定移除這筆訂單？")) return;
             await db.collection('orders').doc(id).delete();
+        }
+
+        function togglePayment(id, currentPaid) {
+            db.collection('orders').doc(id).update({ paid: !currentPaid });
+        }
+
+        async function editOrderSubtotal(orderId, orderIndex) {
+            const order = allOrders.find(o => o._id === orderId);
+            if (!order) return;
+            const current = order.orders[orderIndex]?.subtotal || 0;
+            const newVal = prompt(`修改金額（目前：NT$ ${current}）：`, current);
+            if (newVal === null) return;
+            const newSubtotal = parseInt(newVal);
+            if (isNaN(newSubtotal)) return;
+            const newOrders = order.orders.map((item, idx) =>
+                idx === orderIndex ? { ...item, subtotal: newSubtotal } : item
+            );
+            const grandTotal = newOrders.reduce((s, o) => s + (o.subtotal || 0), 0);
+            await db.collection('orders').doc(orderId).update({ orders: newOrders, grandTotal });
+        }
+
+        function toggleOrderCollapse(id) {
+            if (expandedOrders.has(id)) expandedOrders.delete(id);
+            else expandedOrders.add(id);
+            renderSummary();
+        }
+
+        function calcChange(input, orderId, total) {
+            const span = document.getElementById(`change-${orderId}`);
+            if (!span) return;
+            if (!input.value.trim()) { span.textContent = ''; return; }
+            const change = (parseInt(input.value) || 0) - total;
+            span.textContent = change >= 0 ? `找零 NT$${change}` : `不足 NT$${Math.abs(change)}`;
+            span.className = `text-sm font-black ${change >= 0 ? 'text-green-600' : 'text-red-500'}`;
         }
 
         function clearOrders() {
