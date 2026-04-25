@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>點餐系統</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%BE%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -246,6 +247,7 @@
         let summaryMenuTitles = [];
         let changeInputTimers = {};
         let aggregateMode = false;
+        let currentSummaryUsers = [];
 
         function toggleAggregate() {
             aggregateMode = !aggregateMode;
@@ -767,23 +769,69 @@
                 aggHtml += '</div>';
             });
 
+            aggHtml += '</div>';
+
+            const userTotals = {};
+            allOrders.forEach(o => {
+                if (!userTotals[o.user]) userTotals[o.user] = { count: 0, total: 0, stores: new Set(), orders: [] };
+                userTotals[o.user].count++;
+                userTotals[o.user].total += o.grandTotal || 0;
+                userTotals[o.user].orders.push(o);
+                (o.orders || []).forEach(item => userTotals[o.user].stores.add(item.menuTitle || '未分類'));
+            });
+            Object.values(userTotals).forEach(info => {
+                info.paid = info.orders.length > 0 && info.orders.every(o => o.paid);
+                info.receivedAmount = info.orders[0]?.receivedAmount || 0;
+                info.changeGiven = info.orders.length > 0 && info.orders.every(o => o.changeGiven);
+            });
+            const userEntries = Object.entries(userTotals).sort((a, b) => b[1].total - a[1].total);
+            currentSummaryUsers = userEntries.map(([u]) => u);
+
+            let rightHtml = `<div class="bg-gray-900 text-white p-5 rounded-2xl mb-4">`;
+            if (userEntries.length > 0) {
+                rightHtml += `<div class="text-xs text-blue-400 font-bold tracking-widest uppercase mb-3 flex items-center gap-1.5">👤 個人結算</div>`;
+                userEntries.forEach(([user, info], idx) => {
+                    const multiStore = info.stores.size > 1;
+                    const paid = info.paid;
+                    const totalAmt = info.total;
+                    const recv = info.receivedAmount || 0;
+                    rightHtml += `<div class="bg-white/5 rounded-xl p-3 mb-2">
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="min-w-0 flex-1 flex items-center gap-1.5 flex-wrap">
+                                <span class="text-sm font-black text-white truncate">${user}</span>
+                                ${multiStore ? `<span class="text-[9px] font-bold text-yellow-300 bg-yellow-500/20 px-1.5 py-0.5 rounded-full whitespace-nowrap">跨 ${info.stores.size} 店</span>` : ''}
+                            </div>
+                            <span class="text-base font-black ${multiStore ? 'text-yellow-300' : 'text-blue-300'} whitespace-nowrap">NT$ ${totalAmt}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <button onclick="togglePaymentForUser(${idx})" class="text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${paid ? 'bg-green-500/30 text-green-200' : 'bg-red-500/30 text-red-200'}">
+                                ${paid ? '✓ 已收' : '未收'}
+                            </button>
+                            ${paid ? `
+                                <input type="number" placeholder="收款" value="${recv || ''}" oninput="calcChangeForUser(this, ${idx}, ${totalAmt})" class="w-20 text-[11px] p-1 rounded bg-white/10 text-white text-center outline-none focus:bg-white/20 placeholder-gray-500" style="border:1px solid rgba(255,255,255,0.1)">
+                                <span id="change-user-${idx}" class="text-[11px] font-black ${recv > 0 ? (recv >= totalAmt ? 'text-green-300' : 'text-red-300') : ''}">${recv > 0 ? (recv >= totalAmt ? `找零 $${recv - totalAmt}` : `不足 $${totalAmt - recv}`) : ''}</span>
+                                ${recv > 0 && recv >= totalAmt ? `<button onclick="toggleChangeGivenForUser(${idx})" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap ${info.changeGiven ? 'bg-green-500/30 text-green-200' : 'bg-white/10 text-gray-300'}">${info.changeGiven ? '✓ 已找零' : '找零'}</button>` : ''}
+                            ` : ''}
+                        </div>
+                    </div>`;
+                });
+            }
             if (overallTotal > 0) {
-                aggHtml += `<div class="border-t border-white/20 pt-4 flex justify-between items-center">
+                rightHtml += `<div class="border-t border-white/20 pt-4 flex justify-between items-center mt-4">
                     <span class="text-sm font-bold text-gray-300">全部總計</span>
                     <span class="text-xl font-black text-white">NT$ ${overallTotal}</span>
                 </div>`;
             }
-            aggHtml += `<div class="mt-3 pt-3 border-t border-white/10 flex justify-end">
+            rightHtml += `<div class="mt-3 pt-3 border-t border-white/10 flex justify-end">
                 <button onclick="clearMenuOrders()" class="text-xs text-red-400 hover:text-red-300 font-bold bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full transition-colors">🗑️ 清除「${summaryTab}」訂單</button>
             </div>`;
-            aggHtml += '</div>';
+            rightHtml += '</div>';
 
             let indivOrders = allOrders;
             if (multiMenu) indivOrders = allOrders.filter(o => (o.orders || []).some(item => item.menuTitle === summaryTab));
 
             let ordersHtml = '<div class="grid grid-cols-2 md:grid-cols-5 gap-2 mt-3">';
             indivOrders.forEach(o => {
-                const paid = o.paid || false;
                 const list = o.orders || [];
                 const displayList = multiMenu ? list.filter(item => item.menuTitle === summaryTab) : list;
                 const flatRows = displayList.flatMap(item => {
@@ -801,19 +849,8 @@
                                     <span class="text-[11px] text-gray-400">${o.time || ''}</span>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-1 flex-shrink-0 ml-1">
-                                <button onclick="togglePayment('${o._id}', ${paid})" class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-500'}">
-                                    ${paid ? '✓收' : '未收'}
-                                </button>
-                                <button onclick="deleteOrder('${o._id}')" class="text-sm text-red-300 hover:text-red-500">✕</button>
-                            </div>
+                            <button onclick="deleteOrder('${o._id}')" class="text-sm text-red-300 hover:text-red-500 flex-shrink-0 ml-1">✕</button>
                         </div>
-                        ${paid ? `<div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-[11px] text-gray-400">找零計算</span>
-                            <input type="number" placeholder="收款金額" value="${o.receivedAmount || ''}" class="w-24 text-xs p-1.5 border border-gray-200 rounded-lg text-center outline-none focus:border-green-400" oninput="calcChange(this, '${o._id}', ${o.grandTotal || 0})">
-                            <span id="change-${o._id}" class="text-sm font-black ${o.receivedAmount > 0 ? (o.receivedAmount >= (o.grandTotal || 0) ? 'text-green-600' : 'text-red-500') : ''}">${o.receivedAmount > 0 ? (o.receivedAmount >= (o.grandTotal || 0) ? `找零 NT$${o.receivedAmount - (o.grandTotal || 0)}` : `不足 NT$${(o.grandTotal || 0) - o.receivedAmount}`) : ''}</span>
-                            ${o.receivedAmount > 0 && o.receivedAmount >= (o.grandTotal || 0) ? `<button onclick="toggleChangeGiven('${o._id}', ${o.changeGiven || false})" class="text-[11px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${o.changeGiven ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">${o.changeGiven ? '✓ 已找零' : '找零'}</button>` : ''}
-                        </div>` : ''}
                     </div>
                     ${flatRows.length > 0 ? `<div class="border-t border-gray-100 px-3 pb-2 pt-2 grid grid-cols-2 gap-x-2 gap-y-0">
                         ${flatRows.map(entry => {
@@ -838,7 +875,7 @@
                 </div>`;
             });
             ordersHtml += '</div>';
-            container.innerHTML = aggHtml + ordersHtml;
+            container.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-[1fr,20rem] gap-4">${aggHtml}${rightHtml}</div>${ordersHtml}`;
         }
 
         function viewMenuImage(src) {
@@ -888,6 +925,58 @@
 
         function togglePayment(id, currentPaid) {
             db.collection('orders').doc(id).update({ paid: !currentPaid });
+        }
+
+        async function togglePaymentForUser(idx) {
+            const user = currentSummaryUsers[idx];
+            if (!user) return;
+            const userOrders = allOrders.filter(o => o.user === user);
+            const allPaid = userOrders.length > 0 && userOrders.every(o => o.paid);
+            const newPaid = !allPaid;
+            const batch = db.batch();
+            userOrders.forEach(o => batch.update(db.collection('orders').doc(o._id), { paid: newPaid }));
+            await batch.commit();
+        }
+
+        function calcChangeForUser(input, idx, total) {
+            const user = currentSummaryUsers[idx];
+            if (!user) return;
+            const span = document.getElementById(`change-user-${idx}`);
+            if (!span) return;
+            const userOrders = allOrders.filter(o => o.user === user);
+            const key = 'user-' + user;
+            if (!input.value.trim()) {
+                span.textContent = '';
+                span.className = 'text-[11px] font-black';
+                clearTimeout(changeInputTimers[key]);
+                changeInputTimers[key] = setTimeout(async () => {
+                    const batch = db.batch();
+                    userOrders.forEach(o => batch.update(db.collection('orders').doc(o._id), { receivedAmount: null, changeGiven: false }));
+                    await batch.commit();
+                }, 600);
+                return;
+            }
+            const received = parseInt(input.value) || 0;
+            const change = received - total;
+            span.textContent = change >= 0 ? `找零 $${change}` : `不足 $${Math.abs(change)}`;
+            span.className = `text-[11px] font-black ${change >= 0 ? 'text-green-300' : 'text-red-300'}`;
+            clearTimeout(changeInputTimers[key]);
+            changeInputTimers[key] = setTimeout(async () => {
+                const batch = db.batch();
+                userOrders.forEach(o => batch.update(db.collection('orders').doc(o._id), { receivedAmount: received }));
+                await batch.commit();
+            }, 600);
+        }
+
+        async function toggleChangeGivenForUser(idx) {
+            const user = currentSummaryUsers[idx];
+            if (!user) return;
+            const userOrders = allOrders.filter(o => o.user === user);
+            const allGiven = userOrders.length > 0 && userOrders.every(o => o.changeGiven);
+            const newGiven = !allGiven;
+            const batch = db.batch();
+            userOrders.forEach(o => batch.update(db.collection('orders').doc(o._id), { changeGiven: newGiven }));
+            await batch.commit();
         }
 
         async function editOrderSubtotal(orderId, orderIndex) {
