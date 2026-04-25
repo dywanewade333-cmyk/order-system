@@ -97,6 +97,7 @@
                 <button onclick="switchView('user')" id="btn-user" class="text-sm font-medium tab-active py-1">🍽️ 我要點餐</button>
                 <button onclick="switchView('admin')" id="btn-admin" class="text-sm font-medium text-gray-500 py-1">📋 菜單管理</button>
                 <button onclick="switchView('summary')" id="btn-summary" class="text-sm font-medium text-gray-500 py-1">📊 訂單統計</button>
+                <button onclick="switchView('calendar')" id="btn-calendar" class="text-sm font-medium text-gray-500 py-1">📅 菜單行事曆</button>
                 <button id="dark-toggle" onclick="toggleDark()" class="text-lg leading-none">🌙</button>
             </div>
         </div>
@@ -127,6 +128,17 @@
                 <div id="lib-category-tabs" class="flex flex-wrap gap-2"></div>
             </div>
             <div id="database-list"></div>
+        </section>
+
+        <!-- View: Calendar (行事曆) -->
+        <section id="view-calendar" class="hidden">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-6 flex-wrap gap-2">
+                    <h2 class="text-xl font-black italic flex items-center"><span class="mr-2">📅</span>菜單行事曆</h2>
+                    <p class="text-xs text-gray-400">點選每天的「+ 加店家」即可規劃</p>
+                </div>
+                <div id="calendar-content"></div>
+            </div>
         </section>
 
         <!-- View: Summary (統計) -->
@@ -221,6 +233,18 @@
         <img id="modal-img" class="max-w-full max-h-full rounded-xl shadow-2xl object-contain">
     </div>
 
+    <!-- Calendar Pick Modal -->
+    <div id="calendar-pick-modal" class="hidden fixed inset-0 bg-black/60 z-[95] flex items-center justify-center p-4" onclick="closeCalendarPick(event)">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[80vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="calendar-pick-title" class="text-lg font-black text-gray-800">選擇店家</h3>
+                <button onclick="closeCalendarPick()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="calendar-pick-list" class="overflow-y-auto flex-1 space-y-2"></div>
+            <button onclick="closeCalendarPick()" class="mt-4 bg-blue-600 text-white py-2.5 rounded-xl font-bold">完成</button>
+        </div>
+    </div>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyCBH5fDWcjYaWeppYe1WzohCd1F9UsNPUY",
@@ -248,6 +272,8 @@
         let changeInputTimers = {};
         let aggregateMode = false;
         let currentSummaryUsers = [];
+        let menuCalendar = {};
+        let calendarPickDate = null;
 
         function toggleAggregate() {
             aggregateMode = !aggregateMode;
@@ -288,6 +314,7 @@
                 resolveActiveMenus();
                 renderLibrary();
                 renderActiveMenu();
+                if (!document.getElementById('view-calendar').classList.contains('hidden')) renderCalendar();
             });
 
             db.doc('settings/activeMenus').onSnapshot(doc => {
@@ -302,6 +329,11 @@
                 allOrders = snapshot.docs.map(d => ({ ...d.data(), _id: d.id }));
                 if (!document.getElementById('view-summary').classList.contains('hidden')) renderSummary();
             });
+
+            db.doc('settings/menuCalendar').onSnapshot(doc => {
+                menuCalendar = doc.exists ? (doc.data().data || {}) : {};
+                if (!document.getElementById('view-calendar').classList.contains('hidden')) renderCalendar();
+            });
         };
 
         function saveUserName() {
@@ -310,7 +342,7 @@
         }
 
         function switchView(view) {
-            ['user', 'admin', 'summary'].forEach(v => {
+            ['user', 'admin', 'summary', 'calendar'].forEach(v => {
                 document.getElementById(`view-${v}`).classList.add('hidden');
                 document.getElementById(`btn-${v}`).classList.remove('tab-active', 'text-blue-600');
                 document.getElementById(`btn-${v}`).classList.add('text-gray-500');
@@ -319,6 +351,7 @@
             document.getElementById(`btn-${view}`).classList.remove('text-gray-500');
             document.getElementById(`btn-${view}`).classList.add('tab-active');
             if (view === 'summary') renderSummary();
+            if (view === 'calendar') renderCalendar();
         }
 
         function handleImageUpload(input) {
@@ -1052,6 +1085,107 @@
                 }
             });
             await batch.commit();
+        }
+
+        function dateKey(d) {
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        function renderCalendar() {
+            const container = document.getElementById('calendar-content');
+            if (!container) return;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayKey = dateKey(today);
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            const weekColors = ['text-red-400', 'text-gray-500', 'text-gray-500', 'text-gray-500', 'text-gray-500', 'text-gray-500', 'text-blue-400'];
+
+            let html = '<div class="grid grid-cols-7 gap-2">';
+            weekdays.forEach((wd, i) => {
+                html += `<div class="text-center text-xs font-bold pb-1 ${weekColors[i]}">週${wd}</div>`;
+            });
+            html += '</div>';
+
+            const startDow = today.getDay();
+            html += '<div class="grid grid-cols-7 gap-2 mt-1">';
+            for (let i = 0; i < startDow; i++) html += '<div></div>';
+            for (let i = 0; i < 28; i++) {
+                const d = new Date(today);
+                d.setDate(d.getDate() + i);
+                const k = dateKey(d);
+                const ids = menuCalendar[k] || [];
+                const stores = ids.map(id => menuLibrary.find(m => m.id === id)).filter(Boolean);
+                const isToday = k === todayKey;
+                const dow = d.getDay();
+                const dowColor = dow === 0 ? 'text-red-400' : (dow === 6 ? 'text-blue-400' : 'text-gray-400');
+                html += `<div class="bg-gray-50 rounded-xl p-2 border ${isToday ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50' : 'border-gray-100'} min-h-[110px] flex flex-col">
+                    <div class="flex items-baseline justify-between mb-1.5">
+                        <span class="text-sm font-black ${isToday ? 'text-blue-600' : 'text-gray-800'}">${d.getMonth()+1}/${d.getDate()}</span>
+                        <span class="text-[10px] ${dowColor}">週${weekdays[dow]}</span>
+                    </div>
+                    <div class="space-y-1 flex-1">
+                        ${stores.map(s => `<div class="flex items-center justify-between text-[11px] bg-white px-1.5 py-0.5 rounded-lg border border-gray-100">
+                            <span class="truncate">${menuEmoji(s.category)} ${s.title}</span>
+                            <button onclick="removeFromCalendar('${k}', ${s.id})" class="text-red-300 hover:text-red-500 ml-1 leading-none">×</button>
+                        </div>`).join('')}
+                    </div>
+                    <button onclick="openCalendarPick('${k}')" class="mt-1.5 text-[10px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 py-1 rounded-lg">＋ 加店家</button>
+                </div>`;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function openCalendarPick(k) {
+            calendarPickDate = k;
+            const [y, m, d] = k.split('-');
+            document.getElementById('calendar-pick-title').innerText = `${parseInt(m)}/${parseInt(d)} 選擇店家`;
+            renderCalendarPickList();
+            document.getElementById('calendar-pick-modal').classList.remove('hidden');
+        }
+
+        function closeCalendarPick(e) {
+            if (e && e.target !== document.getElementById('calendar-pick-modal') && e.target !== undefined) return;
+            document.getElementById('calendar-pick-modal').classList.add('hidden');
+            calendarPickDate = null;
+        }
+
+        function renderCalendarPickList() {
+            const list = document.getElementById('calendar-pick-list');
+            const selected = menuCalendar[calendarPickDate] || [];
+            if (menuLibrary.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">資料庫沒有菜單，請先到「菜單管理」新增</div>';
+                return;
+            }
+            list.innerHTML = menuLibrary.map(m => {
+                const checked = selected.includes(m.id);
+                return `<button onclick="toggleCalendarPick(${m.id})" class="w-full flex items-center gap-3 p-3 rounded-xl border transition-colors ${checked ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'}">
+                    <span class="text-lg">${checked ? '✓' : '○'}</span>
+                    <span class="text-base">${menuEmoji(m.category)}</span>
+                    <span class="text-sm font-bold text-gray-800 flex-1 text-left truncate">${m.title}</span>
+                    <span class="text-[10px] text-gray-400">${m.category || ''}</span>
+                </button>`;
+            }).join('');
+        }
+
+        async function toggleCalendarPick(id) {
+            if (!calendarPickDate) return;
+            const current = menuCalendar[calendarPickDate] || [];
+            const newList = current.includes(id) ? current.filter(i => i !== id) : [...current, id];
+            const newCal = { ...menuCalendar };
+            if (newList.length === 0) delete newCal[calendarPickDate];
+            else newCal[calendarPickDate] = newList;
+            await db.doc('settings/menuCalendar').set({ data: newCal });
+            menuCalendar = newCal;
+            renderCalendarPickList();
+        }
+
+        async function removeFromCalendar(k, id) {
+            const newList = (menuCalendar[k] || []).filter(i => i !== id);
+            const newCal = { ...menuCalendar };
+            if (newList.length === 0) delete newCal[k];
+            else newCal[k] = newList;
+            await db.doc('settings/menuCalendar').set({ data: newCal });
         }
 
         function clearOrders() {
