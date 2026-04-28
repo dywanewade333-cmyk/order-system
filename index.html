@@ -1296,26 +1296,38 @@
             const content = document.getElementById('history-day-content');
             if (orders.length === 0) { content.innerHTML = '<p class="text-center py-10 text-gray-400">無紀錄</p>'; }
             else {
-                let html = '<div class="space-y-3">';
+                // 以店家分組
+                const byStore = {};
                 orders.forEach(o => {
-                    const orderTotal = computeOrderTotal(o);
-                    html += `<div class="bg-gray-50 rounded-xl border border-gray-100 p-3">
-                        <div class="flex items-start justify-between mb-2">
-                            <div class="min-w-0 flex-1">
-                                <div class="text-base font-black text-gray-800">${o.user}</div>
-                                <div class="flex items-center gap-2 mt-1 flex-wrap">
-                                    ${orderTotal ? `<span class="text-sm font-black" style="color:#1a6b4a">NT$ ${orderTotal}</span>` : ''}
-                                    <span class="text-[11px] text-gray-400">${o.time || ''}</span>
-                                    ${o.paid ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">✓ 已收</span>` : ''}
-                                </div>
-                            </div>
-                        </div>`;
                     (o.orders || []).forEach(item => {
+                        const storeTitle = item.menuTitle || '未分類';
+                        if (!byStore[storeTitle]) byStore[storeTitle] = [];
+                        byStore[storeTitle].push({ user: o.user, item, itemTotal: computeItemSubtotal(item), time: o.time, paid: o.paid });
+                    });
+                });
+
+                let html = '<div class="space-y-3">';
+                Object.entries(byStore).forEach(([storeTitle, entries]) => {
+                    const storeTotal = entries.reduce((s, e) => s + e.itemTotal, 0);
+                    const menuMeta = menuLibrary.find(mm => mm.title === storeTitle);
+                    html += `<div class="bg-gray-50 rounded-xl border border-gray-100 p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-sm font-black text-gray-800">${menuEmoji((menuMeta || {}).category)} ${storeTitle}</div>
+                            ${storeTotal ? `<span class="text-sm font-black" style="color:#1a6b4a">NT$ ${storeTotal}</span>` : ''}
+                        </div>`;
+                    entries.forEach(e => {
                         html += `<div class="border-t border-gray-100 pt-2 mt-2">
-                            <div class="text-xs font-bold text-gray-500 mb-1.5">${menuEmoji((menuLibrary.find(mm => mm.title === item.menuTitle) || {}).category)} ${item.menuTitle || '未分類'}</div>`;
-                        if (item.rows && item.rows.length) {
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-black text-gray-700">${e.user}</span>
+                                <div class="flex items-center gap-2">
+                                    ${e.itemTotal ? `<span class="text-xs font-bold" style="color:#1a6b4a">NT$ ${e.itemTotal}</span>` : ''}
+                                    <span class="text-[11px] text-gray-400">${e.time || ''}</span>
+                                    ${e.paid ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">✓ 已收</span>` : ''}
+                                </div>
+                            </div>`;
+                        if (e.item.rows && e.item.rows.length) {
                             html += '<div class="grid grid-cols-2 gap-x-3 gap-y-1">';
-                            item.rows.forEach(r => {
+                            e.item.rows.forEach(r => {
                                 const rowTotal = (parseInt(r.price) || 0) * (r.qty || 1);
                                 html += `<div class="text-xs text-gray-700 flex justify-between">
                                     <span class="truncate">${r.item}${r.qty > 1 ? ` ×${r.qty}` : ''}${r.note ? `（${r.note}）` : ''}</span>
@@ -1323,8 +1335,8 @@
                                 </div>`;
                             });
                             html += '</div>';
-                        } else if (item.text) {
-                            html += `<div class="text-xs text-gray-700 whitespace-pre-line">${item.text}</div>`;
+                        } else if (e.item.text) {
+                            html += `<div class="text-xs text-gray-700 whitespace-pre-line">${e.item.text}</div>`;
                         }
                         html += '</div>';
                     });
