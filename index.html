@@ -1134,21 +1134,24 @@
             });
             html += '</div>';
 
-            const startDow = today.getDay();
+            // Start from Sunday 2 weeks ago so past records remain visible
+            const startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - today.getDay() - 14);
+
             html += '<div class="grid grid-cols-7 gap-2 mt-1">';
-            for (let i = 0; i < startDow; i++) html += '<div></div>';
-            for (let i = 0; i < 28; i++) {
-                const d = new Date(today);
+            for (let i = 0; i < 49; i++) {
+                const d = new Date(startDate);
                 d.setDate(d.getDate() + i);
                 const k = dateKey(d);
                 const ids = menuCalendar[k] || [];
                 const stores = ids.map(id => menuLibrary.find(m => m.id === id)).filter(Boolean);
                 const isToday = k === todayKey;
+                const isPast = d < today;
                 const dow = d.getDay();
                 const dowColor = dow === 0 ? 'text-red-400' : (dow === 6 ? 'text-blue-400' : 'text-gray-400');
-                html += `<div class="bg-gray-50 rounded-xl p-2 border ${isToday ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50' : 'border-gray-100'} min-h-[110px] flex flex-col">
+                html += `<div class="bg-gray-50 rounded-xl p-2 border ${isToday ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50' : 'border-gray-100'} ${isPast && !isToday ? 'opacity-60' : ''} min-h-[110px] flex flex-col">
                     <div class="flex items-baseline justify-between mb-1.5">
-                        <span class="text-sm font-black ${isToday ? 'text-blue-600' : 'text-gray-800'}">${d.getMonth()+1}/${d.getDate()}</span>
+                        <span class="text-sm font-black ${isToday ? 'text-blue-600' : isPast ? 'text-gray-400' : 'text-gray-800'}">${d.getMonth()+1}/${d.getDate()}</span>
                         <span class="text-[10px] ${dowColor}">週${weekdays[dow]}</span>
                     </div>
                     <div class="space-y-1 flex-1">
@@ -1157,7 +1160,7 @@
                             <button onclick="removeFromCalendar('${k}', ${s.id})" class="text-red-300 hover:text-red-500 ml-1 leading-none">×</button>
                         </div>`).join('')}
                     </div>
-                    <button onclick="openCalendarPick('${k}')" class="mt-1.5 text-[10px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 py-1 rounded-lg">＋ 加店家</button>
+                    <button onclick="openCalendarPick('${k}')" class="mt-1.5 text-[10px] font-bold ${isPast && !isToday ? 'text-gray-400 bg-gray-100 hover:bg-gray-200' : 'text-blue-600 bg-blue-50 hover:bg-blue-100'} py-1 rounded-lg">＋ 加店家</button>
                 </div>`;
             }
             html += '</div>';
